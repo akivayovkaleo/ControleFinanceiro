@@ -1,0 +1,3 @@
+# Um app de finanças pessoais não tem nada a ganhar sendo indexado.
+User-agent: *
+Disallow: /

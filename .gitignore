@@ -1,0 +1,42 @@
+# dependências
+node_modules/
+.pnp
+.pnp.js
+
+# build
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+
+# ambiente — NUNCA versionar segredos
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# banco de dados local
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+prisma/dev.db*
+prisma/*.db*
+data/
+
+# testes / cobertura
+coverage/
+.vitest/
+
+# sistema
+.DS_Store
+Thumbs.db
+*.log
+npm-debug.log*
+
+# editores
+.vscode/*
+!.vscode/extensions.json
+.idea/

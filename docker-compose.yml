@@ -1,0 +1,19 @@
+services:
+  app:
+    build: .
+    container_name: controle-financeiro
+    restart: unless-stopped
+    ports:
+      # Só localhost: coloque um proxy com HTTPS na frente (ver docs/DEPLOY.md).
+      - "127.0.0.1:3000:3000"
+    environment:
+      DATABASE_URL: "file:/dados/financeiro.db"
+      # Gere o seu e coloque no arquivo .env ao lado deste compose:
+      #   node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
+      AUTH_SECRET: "${AUTH_SECRET:?defina AUTH_SECRET no .env}"
+      SESSION_DAYS: "${SESSION_DAYS:-30}"
+      DISABLE_SIGNUP: "${DISABLE_SIGNUP:-false}"
+      APP_URL: "${APP_URL:-}"
+    volumes:
+      # O banco vive aqui. Faça backup deste diretório.
+      - ./dados:/dados

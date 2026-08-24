@@ -1,0 +1,484 @@
+// ---------------------------------------------------------------------------
+// Controle Financeiro — modelo de dados
+//
+// LEIA ANTES DE ALTERAR (docs/MODELO-DE-DADOS.md tem a versão longa):
+//
+//  1. DINHEIRO É SEMPRE `Int` EM CENTAVOS. Nunca Float/Decimal. O nome do
+//     campo sempre termina em `Cents`. Ver src/lib/money.ts.
+//  2. TODA entidade financeira pertence a um `Space`. A autorização do app
+//     inteiro se resume a "este usuário é membro deste space?".
+//     Nunca consulte uma entidade sem filtrar por spaceId.
+//  3. Quem participa de um space é uma `Membership`, não um `User`.
+//     Transações apontam para Membership (não para User) para que o
+//     histórico continue íntegro se alguém sair do space.
+//  4. Datas de competência (`date`) são armazenadas em UTC à meia-noite do
+//     dia local escolhido. Ver src/lib/date.ts.
+// ---------------------------------------------------------------------------
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  // SQLite por padrão: zero configuração, arquivo único, backup = copiar o arquivo.
+  // Para migrar para PostgreSQL veja docs/DEPLOY.md (troque o provider e rode as migrations).
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ===========================================================================
+// Identidade e sessão
+// ===========================================================================
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  avatarColor  String   @default("#10b981")
+  /// Preferência de tema: "system" | "light" | "dark"
+  theme        String   @default("system")
+  /// Space que o usuário estava usando por último (conveniência de UI).
+  lastSpaceId  String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  memberships     Membership[]
+  sessions        Session[]
+  invitesCreated  Invite[]     @relation("InviteCreatedBy")
+  invitesAccepted Invite[]     @relation("InviteAcceptedBy")
+  auditLogs       AuditLog[]
+
+  @@index([email])
+}
+
+/// Sessões são persistidas (além do cookie JWT) para permitir revogação:
+/// "sair de todos os dispositivos" e invalidação imediata na troca de senha.
+model Session {
+  id         String   @id @default(cuid())
+  userId     String
+  /// SHA-256 do token de sessão. O token em claro só existe no cookie.
+  tokenHash  String   @unique
+  userAgent  String?
+  ipHash     String?
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+  expiresAt  DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+/// Contador de tentativas de login por identificador (email + IP), usado para
+/// rate limiting sem depender de Redis. Ver src/lib/auth/rate-limit.ts.
+model LoginAttempt {
+  id           String    @id @default(cuid())
+  key          String    @unique
+  count        Int       @default(0)
+  firstAt      DateTime  @default(now())
+  lastAt       DateTime  @default(now())
+  blockedUntil DateTime?
+
+  @@index([blockedUntil])
+}
+
+// ===========================================================================
+// Spaces — o mecanismo que permite "sozinho" e "a dois"
+// ===========================================================================
+
+enum SpaceType {
+  /// Criado automaticamente no cadastro. Sempre um único membro, não compartilhável.
+  PERSONAL
+  /// Criado pelo usuário e compartilhado por convite (ex.: "Nós dois").
+  SHARED
+}
+
+model Space {
+  id            String    @id @default(cuid())
+  name          String
+  type          SpaceType @default(PERSONAL)
+  /// Código ISO 4217. Toda formatação usa isto. Ver src/lib/money.ts.
+  currency      String    @default("BRL")
+  /// Dia em que o "mês financeiro" começa (1 = mês civil). Útil para quem
+  /// organiza as contas pela data do salário.
+  monthStartDay Int       @default(1)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  memberships  Membership[]
+  accounts     Account[]
+  categories   Category[]
+  transactions Transaction[]
+  budgets      Budget[]
+  goals        Goal[]
+  recurrences  Recurrence[]
+  settlements  Settlement[]
+  invites      Invite[]
+  auditLogs    AuditLog[]
+}
+
+enum MemberRole {
+  /// Pode gerenciar membros, convites e apagar o space.
+  OWNER
+  /// Pode criar/editar/apagar lançamentos, mas não gerenciar membros.
+  MEMBER
+}
+
+model Membership {
+  id                 String     @id @default(cuid())
+  userId             String
+  spaceId            String
+  role               MemberRole @default(MEMBER)
+  /// Como a pessoa aparece dentro deste space (pode diferir do nome da conta).
+  displayName        String
+  color              String     @default("#10b981")
+  /// Renda mensal declarada, em centavos. Usada pelo modo de divisão
+  /// proporcional (INCOME_RATIO). Opcional.
+  monthlyIncomeCents Int?
+  joinedAt           DateTime   @default(now())
+
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+
+  accountsOwned     Account[]          @relation("AccountOwner")
+  transactionsPaid  Transaction[]      @relation("TransactionPaidBy")
+  shares            TransactionShare[]
+  goalContributions GoalContribution[]
+  settlementsFrom   SettlementLine[]   @relation("SettlementFrom")
+  settlementsTo     SettlementLine[]   @relation("SettlementTo")
+
+  @@unique([userId, spaceId])
+  @@index([spaceId])
+}
+
+/// Convite para entrar num space compartilhado. O código em claro é entregue
+/// uma única vez a quem convidou; o banco guarda apenas o hash.
+model Invite {
+  id           String    @id @default(cuid())
+  spaceId      String
+  codeHash     String    @unique
+  /// Últimos caracteres do código, só para o dono reconhecer o convite na lista.
+  codeHint     String
+  createdById  String
+  expiresAt    DateTime
+  acceptedAt   DateTime?
+  acceptedById String?
+  revokedAt    DateTime?
+  createdAt    DateTime  @default(now())
+
+  space      Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  createdBy  User  @relation("InviteCreatedBy", fields: [createdById], references: [id], onDelete: Cascade)
+  acceptedBy User? @relation("InviteAcceptedBy", fields: [acceptedById], references: [id], onDelete: SetNull)
+
+  @@index([spaceId])
+}
+
+// ===========================================================================
+// Contas e categorias
+// ===========================================================================
+
+enum AccountType {
+  CHECKING
+  SAVINGS
+  CASH
+  CREDIT_CARD
+  INVESTMENT
+}
+
+model Account {
+  id                  String      @id @default(cuid())
+  spaceId             String
+  name                String
+  type                AccountType @default(CHECKING)
+  /// Saldo inicial no momento em que a conta passou a ser controlada aqui.
+  openingBalanceCents Int         @default(0)
+  /// null = conta conjunta do casal. Preenchido = conta de um membro só.
+  ownerMembershipId   String?
+  /// Limite do cartão, em centavos (apenas para CREDIT_CARD).
+  creditLimitCents    Int?
+  /// Dia de fechamento da fatura (apenas para CREDIT_CARD).
+  statementDay        Int?
+  /// Dia de vencimento da fatura (apenas para CREDIT_CARD).
+  dueDay              Int?
+  color               String      @default("#64748b")
+  icon                String      @default("wallet")
+  archived            Boolean     @default(false)
+  sortOrder           Int         @default(0)
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+
+  space           Space       @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  ownerMembership Membership? @relation("AccountOwner", fields: [ownerMembershipId], references: [id], onDelete: SetNull)
+
+  transactions Transaction[] @relation("TransactionAccount")
+  transfersIn  Transaction[] @relation("TransactionToAccount")
+  recurrences  Recurrence[]
+
+  @@index([spaceId, archived])
+}
+
+enum CategoryKind {
+  INCOME
+  EXPENSE
+}
+
+model Category {
+  id        String       @id @default(cuid())
+  spaceId   String
+  name      String
+  kind      CategoryKind
+  color     String       @default("#64748b")
+  icon      String       @default("tag")
+  /// Categorias criadas pelo seed inicial; não impede edição, só sinaliza na UI.
+  isDefault Boolean      @default(false)
+  archived  Boolean      @default(false)
+  sortOrder Int          @default(0)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  space        Space         @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  budgets      Budget[]
+  recurrences  Recurrence[]
+
+  @@unique([spaceId, name, kind])
+  @@index([spaceId, kind, archived])
+}
+
+// ===========================================================================
+// Lançamentos e divisão de despesas
+// ===========================================================================
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  /// Movimento entre duas contas do mesmo space. Não entra em receita/despesa
+  /// nem em orçamentos — apenas move saldo. Exige `toAccountId`.
+  TRANSFER
+}
+
+enum SplitMode {
+  /// 100% de quem pagou. É o padrão em space pessoal e para gastos individuais.
+  OWNER
+  /// Dividido em partes iguais entre todos os membros.
+  EQUAL
+  /// Proporcional à renda mensal declarada de cada membro.
+  INCOME_RATIO
+  /// Valores definidos manualmente (TransactionShare gravado pelo usuário).
+  CUSTOM
+}
+
+model Transaction {
+  id          String          @id @default(cuid())
+  spaceId     String
+  type        TransactionType
+  /// Sempre positivo. O sinal é dado por `type`. Em centavos.
+  amountCents Int
+  /// Data de competência (UTC à meia-noite do dia local). Ver src/lib/date.ts.
+  date        DateTime
+  description String
+  notes       String?
+
+  accountId   String
+  /// Conta de destino — obrigatório e exclusivo de TRANSFER.
+  toAccountId String?
+  categoryId  String?
+
+  /// Quem desembolsou. null em space pessoal de um membro só é aceitável,
+  /// mas o app preenche sempre que possível.
+  paidByMembershipId String?
+  splitMode          SplitMode @default(OWNER)
+
+  recurrenceId String?
+  /// Preenchido quando a transação foi incluída num acerto de contas já quitado.
+  settlementId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  space      Space       @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  account    Account     @relation("TransactionAccount", fields: [accountId], references: [id], onDelete: Cascade)
+  toAccount  Account?    @relation("TransactionToAccount", fields: [toAccountId], references: [id], onDelete: SetNull)
+  category   Category?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  paidBy     Membership? @relation("TransactionPaidBy", fields: [paidByMembershipId], references: [id], onDelete: SetNull)
+  recurrence Recurrence? @relation(fields: [recurrenceId], references: [id], onDelete: SetNull)
+  settlement Settlement? @relation(fields: [settlementId], references: [id], onDelete: SetNull)
+
+  shares TransactionShare[]
+
+  @@index([spaceId, date])
+  @@index([spaceId, type, date])
+  @@index([accountId])
+  @@index([categoryId])
+  @@index([settlementId])
+}
+
+/// Quanto cada membro "deve" de uma transação. As linhas SEMPRE somam
+/// exatamente `Transaction.amountCents` — a sobra de arredondamento é
+/// distribuída de forma determinística. Ver src/lib/split.ts.
+model TransactionShare {
+  id            String @id @default(cuid())
+  transactionId String
+  membershipId  String
+  amountCents   Int
+
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  membership  Membership  @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  @@unique([transactionId, membershipId])
+  @@index([membershipId])
+}
+
+// ===========================================================================
+// Acerto de contas — "quem deve quanto a quem"
+// ===========================================================================
+
+/// Registro de uma quitação entre membros. Ao criar um Settlement, as
+/// transações do período recebem `settlementId`, saindo do saldo em aberto.
+model Settlement {
+  id          String   @id @default(cuid())
+  spaceId     String
+  periodStart DateTime
+  periodEnd   DateTime
+  note        String?
+  createdAt   DateTime @default(now())
+
+  space        Space            @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  lines        SettlementLine[]
+  transactions Transaction[]
+
+  @@index([spaceId, periodEnd])
+}
+
+model SettlementLine {
+  id               String @id @default(cuid())
+  settlementId     String
+  fromMembershipId String
+  toMembershipId   String
+  amountCents      Int
+
+  settlement Settlement @relation(fields: [settlementId], references: [id], onDelete: Cascade)
+  from       Membership @relation("SettlementFrom", fields: [fromMembershipId], references: [id], onDelete: Cascade)
+  to         Membership @relation("SettlementTo", fields: [toMembershipId], references: [id], onDelete: Cascade)
+
+  @@index([settlementId])
+}
+
+// ===========================================================================
+// Orçamentos, metas e recorrências
+// ===========================================================================
+
+model Budget {
+  id         String @id @default(cuid())
+  spaceId    String
+  categoryId String
+  /// Competência no formato "YYYY-MM".
+  month      String
+  limitCents Int
+
+  space    Space    @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([spaceId, categoryId, month])
+  @@index([spaceId, month])
+}
+
+model Goal {
+  id          String    @id @default(cuid())
+  spaceId     String
+  name        String
+  targetCents Int
+  targetDate  DateTime?
+  color       String    @default("#10b981")
+  icon        String    @default("target")
+  archived    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  space         Space              @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  contributions GoalContribution[]
+
+  @@index([spaceId, archived])
+}
+
+model GoalContribution {
+  id           String   @id @default(cuid())
+  goalId       String
+  membershipId String?
+  amountCents  Int
+  date         DateTime
+  note         String?
+  createdAt    DateTime @default(now())
+
+  goal       Goal        @relation(fields: [goalId], references: [id], onDelete: Cascade)
+  membership Membership? @relation(fields: [membershipId], references: [id], onDelete: SetNull)
+
+  @@index([goalId])
+}
+
+enum RecurrenceFrequency {
+  WEEKLY
+  BIWEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+/// Modelo de lançamento que se repete (aluguel, salário, assinaturas).
+/// Não gera nada sozinho: o app materializa as ocorrências pendentes quando
+/// alguém abre o app. Ver src/lib/recurrence.ts.
+model Recurrence {
+  id                 String              @id @default(cuid())
+  spaceId            String
+  type               TransactionType
+  amountCents        Int
+  description        String
+  accountId          String
+  categoryId         String?
+  paidByMembershipId String?
+  splitMode          SplitMode           @default(OWNER)
+  frequency          RecurrenceFrequency @default(MONTHLY)
+  /// Próxima data de competência a ser gerada.
+  nextRunAt          DateTime
+  /// Para de gerar depois desta data (opcional).
+  endsAt             DateTime?
+  active             Boolean             @default(true)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  space    Space     @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  account  Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  transactions Transaction[]
+
+  @@index([spaceId, active, nextRunAt])
+}
+
+// ===========================================================================
+// Auditoria
+// ===========================================================================
+
+/// Trilha do que foi feito e por quem — importante num space compartilhado,
+/// onde duas pessoas mexem nos mesmos dados.
+model AuditLog {
+  id        String   @id @default(cuid())
+  spaceId   String?
+  userId    String?
+  /// Ex.: "transaction.create", "member.remove", "auth.login".
+  action    String
+  entity    String?
+  entityId  String?
+  /// JSON serializado com um resumo legível da mudança.
+  meta      String?
+  ipHash    String?
+  createdAt DateTime @default(now())
+
+  space Space? @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  user  User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([spaceId, createdAt])
+  @@index([userId, createdAt])
+}
