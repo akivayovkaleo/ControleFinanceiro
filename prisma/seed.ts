@@ -11,8 +11,13 @@
 
 import { PrismaClient } from '@prisma/client';
 import { hash } from '@node-rs/argon2';
+import { loadEnv } from '../scripts/load-env.mjs';
 import { DEFAULT_CATEGORIES } from '../src/lib/presets';
 import { computeShares } from '../src/lib/split';
+
+// Precisa vir ANTES do `new PrismaClient()`: rodado por tsx, este script não
+// herda o carregamento de .env que o CLI do Prisma faz sozinho.
+loadEnv();
 
 const db = new PrismaClient();
 

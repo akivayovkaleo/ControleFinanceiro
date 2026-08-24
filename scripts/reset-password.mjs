@@ -11,6 +11,11 @@
 
 import { createInterface } from 'node:readline/promises';
 import { stdin, stdout } from 'node:process';
+import { loadEnv } from './load-env.mjs';
+
+// Antes de qualquer import do Prisma: rodado direto pelo node, este script não
+// herda o carregamento de .env que o CLI do Prisma faz sozinho.
+loadEnv();
 
 const email = process.argv[2]?.trim().toLowerCase();
 
