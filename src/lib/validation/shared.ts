@@ -107,7 +107,7 @@ export const hexColor = z
   .string()
   .trim()
   .regex(/^#[0-9a-fA-F]{6}$/, 'Cor inválida')
-  .default('#64748b');
+  .default('#5b6478');
 
 export const shortText = (max: number, label: string) =>
   z.string().trim().min(1, `Informe ${label}`).max(max, `${label} é longo demais`);

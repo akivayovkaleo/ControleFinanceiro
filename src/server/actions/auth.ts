@@ -16,7 +16,7 @@ import { redirect } from 'next/navigation';
 import { db } from '@/lib/db';
 import { env } from '@/lib/env';
 import { audit } from '@/lib/audit';
-import { DEFAULT_ACCOUNTS, DEFAULT_CATEGORIES } from '@/lib/presets';
+import { DEFAULT_ACCOUNTS, DEFAULT_CATEGORIES, defaultAvatarColor } from '@/lib/presets';
 import { fakeVerify, hashPassword, verifyPassword } from '@/lib/auth/password';
 import {
   checkLoginRateLimit,
@@ -88,7 +88,7 @@ export async function signupAction(_prev: ActionState, formData: FormData): Prom
     // entra num app pronto para uso, ou nada é criado.
     const user = await db.$transaction(async (tx) => {
       const created = await tx.user.create({
-        data: { name, email, passwordHash, avatarColor: '#10b981' },
+        data: { name, email, passwordHash, avatarColor: defaultAvatarColor(email) },
       });
 
       const space = await tx.space.create({

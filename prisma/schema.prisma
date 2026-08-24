@@ -35,7 +35,7 @@ model User {
   email        String   @unique
   name         String
   passwordHash String
-  avatarColor  String   @default("#10b981")
+  avatarColor  String   @default("#3b6fd4")
   /// Preferência de tema: "system" | "light" | "dark"
   theme        String   @default("system")
   /// Space que o usuário estava usando por último (conveniência de UI).
@@ -133,7 +133,7 @@ model Membership {
   role               MemberRole @default(MEMBER)
   /// Como a pessoa aparece dentro deste space (pode diferir do nome da conta).
   displayName        String
-  color              String     @default("#10b981")
+  color              String     @default("#3b6fd4")
   /// Renda mensal declarada, em centavos. Usada pelo modo de divisão
   /// proporcional (INCOME_RATIO). Opcional.
   monthlyIncomeCents Int?
@@ -202,7 +202,7 @@ model Account {
   statementDay        Int?
   /// Dia de vencimento da fatura (apenas para CREDIT_CARD).
   dueDay              Int?
-  color               String      @default("#64748b")
+  color               String      @default("#5b6478")
   icon                String      @default("wallet")
   archived            Boolean     @default(false)
   sortOrder           Int         @default(0)
@@ -229,7 +229,7 @@ model Category {
   spaceId   String
   name      String
   kind      CategoryKind
-  color     String       @default("#64748b")
+  color     String       @default("#5b6478")
   icon      String       @default("tag")
   /// Categorias criadas pelo seed inicial; não impede edição, só sinaliza na UI.
   isDefault Boolean      @default(false)
@@ -391,7 +391,7 @@ model Goal {
   name        String
   targetCents Int
   targetDate  DateTime?
-  color       String    @default("#10b981")
+  color       String    @default("#3b6fd4")
   icon        String    @default("target")
   archived    Boolean   @default(false)
   createdAt   DateTime  @default(now())

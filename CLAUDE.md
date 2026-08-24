@@ -108,7 +108,21 @@ Brasil apareceria como 30/01 se lido em hora local).
 > renderiza um campo simplesmente não o envia. Há testes fixando isso em
 > `tests/validation.test.ts`.
 
-### 5. Erros nunca vazam detalhe interno
+### 5. Cor tem significado fixo
+
+`--brand` (índigo) é da interface: botão, menu ativo, link. **Nunca entra num
+gráfico.** `--income`, `--expense`, `--transfer` e `--warning` são reservadas e
+só significam estado.
+
+Antes a marca e a receita eram literalmente a mesma cor, e o botão primário
+lia como "entrou dinheiro".
+
+Categorias usam `--cat-1` … `--cat-8`, uma paleta validada para daltonismo e
+contraste nos dois temas. **Mexeu nela, revalide** — ver `docs/DESIGN.md`.
+
+Nunca escreva cor literal num componente; use um token.
+
+### 6. Erros nunca vazam detalhe interno
 
 `runAction` (em `src/server/actions/result.ts`) traduz exceções conhecidas e
 esconde as desconhecidas atrás de uma mensagem genérica, logando o original no
@@ -119,12 +133,14 @@ servidor.
 ```
 prisma/
   schema.prisma          modelo de dados, com comentários explicando cada escolha
-  seed.ts                casal de exemplo com 3 meses de lançamentos
+  seed.ts                casal de exemplo com 6 meses de lançamentos
 src/
   app/
+    page.tsx             página de vendas (quem está logado vai para o painel)
     (app)/               telas autenticadas (painel, lançamentos, acerto…)
     entrar/ criar-conta/ autenticação
-    layout.tsx           tema antes da primeira pintura
+    layout.tsx           fonte + tema antes da primeira pintura
+    globals.css          ⭐ tokens de cor, tipografia e superfícies
   components/
     ui/                  primitivas (Button, Field, Money, Avatar…)
     app/                 casca (sidebar, nav mobile, seletor de espaço)
@@ -137,7 +153,8 @@ src/
     date.ts              ⭐ competências e meia-noite UTC
     auth/                senha (Argon2id), sessão, rate limit, guardas
     validation/          schemas Zod
-    presets.ts           categorias e contas iniciais
+    presets.ts           categorias, contas e paleta validada
+    planos.ts            planos da página de vendas (preço mora aqui)
   server/
     queries/             leitura (saldos, painel, acerto)
     actions/             escrita (Server Actions)
@@ -170,11 +187,14 @@ npm run senha -- email@exemplo.com   # redefine a senha de alguém
 | Argon2id | recomendação atual do OWASP para hash de senha |
 | Sessão em cookie **e** em tabela | o cookie prova a assinatura na borda; a tabela permite revogar na hora |
 | Tailwind + tokens CSS | tema claro/escuro trocando variáveis, sem recompilar |
+| Inter via `next/font` | números tabulares de verdade e zero cortado; servida do próprio domínio, sem chamar o Google |
 | Vitest | testes rápidos da lógica pura, sem precisar subir banco |
 
 ## Onde ler mais
 
 - `docs/PRODUTO.md` — o que o app faz e para quem, tela a tela
+- `docs/DESIGN.md` — tipografia, cor, gráficos e as regras para mexer nisso
+- `docs/MONETIZACAO.md` — o que falta para cobrar de verdade
 - `docs/ARQUITETURA.md` — como as peças se encaixam
 - `docs/MODELO-DE-DADOS.md` — cada tabela e por que ela existe
 - `docs/SEGURANCA.md` — o modelo de ameaças e o que foi feito

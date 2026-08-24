@@ -148,83 +148,80 @@ export default async function DashboardPage({
           )}
 
           {/*
-            `items-start` impede que o cartão do gráfico seja esticado até a
-            altura do de categorias — sem isso, sobrava um vazio enorme (ou o
-            gráfico crescia demais, exagerando o trecho sem dados).
+            Duas colunas que fluem por conta própria, em vez de linhas de grid.
+
+            Com linhas, o cartão do gráfico (curto) ficava ao lado do de
+            categorias (alto) e sobrava um buraco enorme embaixo dele. Assim
+            cada coluna empilha seus cartões na altura que eles têm.
           */}
-          <div className="grid items-start gap-5 lg:grid-cols-3">
-            {/* ------------------------------------------------- evolução */}
-            <Card className="lg:col-span-2">
-              <CardHeader
-                title="Últimos 6 meses"
-                description="Receitas e despesas lado a lado"
-              />
-              <CardBody className="pt-2">
-                <TrendChart data={trend} currency={currency} />
-              </CardBody>
-            </Card>
-
-            {/* ------------------------------------------------ categorias */}
-            <Card>
-              <CardHeader
-                title="Onde foi o dinheiro"
-                description={formatMonthKey(month)}
-              />
-              <CardBody className="pt-2">
-                {breakdown.length > 0 && (
-                  <div className="mb-4">
-                    <CategoryDonut
-                      data={breakdown.slice(0, 8).map((b) => ({
-                        name: b.name,
-                        amountCents: b.amountCents,
-                        color: b.color,
-                      }))}
-                      currency={currency}
-                    />
-                  </div>
-                )}
-                <CategoryList
-                  items={breakdown}
-                  currency={currency}
-                  spaceId={space.id}
-                  month={month}
+          <div className="grid gap-5 lg:grid-cols-3">
+            <div className="space-y-5 lg:col-span-2">
+              {/* ------------------------------------------------- evolução */}
+              <Card>
+                <CardHeader
+                  title="Últimos 6 meses"
+                  description="Receitas e despesas lado a lado"
                 />
-              </CardBody>
-            </Card>
-          </div>
+                <CardBody className="pt-2">
+                  <TrendChart data={trend} currency={currency} />
+                </CardBody>
+              </Card>
 
-          <div className="grid items-start gap-5 lg:grid-cols-3">
-            {/* -------------------------------------------- últimos lançamentos */}
-            <Card className="lg:col-span-2">
-              <CardHeader
-                title="Últimos lançamentos"
-                action={
-                  <Link
-                    href={{ pathname: '/lancamentos', query: { space: space.id, mes: month } }}
-                    className="inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline"
-                  >
-                    Ver todos
-                    <ArrowRight className="h-3.5 w-3.5" aria-hidden />
-                  </Link>
-                }
-              />
-              <CardBody className="pt-3">
-                {recent.length === 0 ? (
-                  <p className="py-6 text-center text-sm text-muted">
-                    Nada registrado ainda.
-                  </p>
-                ) : (
-                  <TransactionList
-                    transactions={recent}
-                    currency={currency}
-                    spaceId={space.id}
-                    showSplit={isShared}
-                  />
-                )}
-              </CardBody>
-            </Card>
+              {/* -------------------------------------- últimos lançamentos */}
+              <Card>
+                <CardHeader
+                  title="Últimos lançamentos"
+                  action={
+                    <Link
+                      href={{ pathname: '/lancamentos', query: { space: space.id, mes: month } }}
+                      className="inline-flex items-center gap-1 text-sm font-medium text-brand hover:underline"
+                    >
+                      Ver todos
+                      <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+                    </Link>
+                  }
+                />
+                <CardBody className="pt-3">
+                  {recent.length === 0 ? (
+                    <p className="py-6 text-center text-sm text-muted">Nada registrado ainda.</p>
+                  ) : (
+                    <TransactionList
+                      transactions={recent}
+                      currency={currency}
+                      spaceId={space.id}
+                      showSplit={isShared}
+                    />
+                  )}
+                </CardBody>
+              </Card>
+            </div>
 
             <div className="space-y-5">
+              {/* ------------------------------------------------ categorias */}
+              <Card>
+                <CardHeader title="Onde foi o dinheiro" description={formatMonthKey(month)} />
+                <CardBody className="pt-2">
+                  {breakdown.length > 0 && (
+                    <div className="mb-4">
+                      <CategoryDonut
+                        data={breakdown.slice(0, 8).map((b) => ({
+                          name: b.name,
+                          amountCents: b.amountCents,
+                          color: b.color,
+                        }))}
+                        currency={currency}
+                      />
+                    </div>
+                  )}
+                  <CategoryList
+                    items={breakdown}
+                    currency={currency}
+                    spaceId={space.id}
+                    month={month}
+                  />
+                </CardBody>
+              </Card>
+
               {/* ------------------------------------------------ orçamentos */}
               <Card>
                 <CardHeader
@@ -240,7 +237,7 @@ export default async function DashboardPage({
                 />
                 <CardBody className="pt-3">
                   {budgets.length === 0 ? (
-                    <p className="text-sm text-muted">
+                    <p className="text-sm leading-relaxed text-muted">
                       Defina limites por categoria para saber antes do fim do mês se o
                       dinheiro vai apertar.
                     </p>
@@ -250,7 +247,7 @@ export default async function DashboardPage({
                         <li key={budget.categoryId}>
                           <div className="mb-1.5 flex items-baseline justify-between gap-2">
                             <span className="truncate text-sm text-fg">{budget.categoryName}</span>
-                            <span className="tabular shrink-0 text-xs text-muted">
+                            <span className="tabular shrink-0 text-xs font-medium text-muted">
                               {budget.percent.toFixed(0)}%
                             </span>
                           </div>
@@ -259,20 +256,10 @@ export default async function DashboardPage({
                             showOverflow
                             tone={budget.status === 'atencao' ? 'warning' : 'brand'}
                           />
-                          <p className="mt-1 text-2xs text-muted">
-                            <Money
-                              cents={budget.spentCents}
-                              currency={currency}
-                              tone="muted"
-                              size="xs"
-                            />{' '}
-                            de{' '}
-                            <Money
-                              cents={budget.limitCents}
-                              currency={currency}
-                              tone="muted"
-                              size="xs"
-                            />
+                          <p className="mt-1 text-2xs text-subtle">
+                            <Money cents={budget.spentCents} currency={currency} tone="muted" size="xs" />
+                            {' de '}
+                            <Money cents={budget.limitCents} currency={currency} tone="muted" size="xs" />
                           </p>
                         </li>
                       ))}
@@ -305,7 +292,7 @@ export default async function DashboardPage({
                         />
                         <span className="min-w-0 flex-1">
                           <span className="block truncate text-sm text-fg">{account.name}</span>
-                          <span className="block text-2xs text-muted">
+                          <span className="block text-2xs text-subtle">
                             {ACCOUNT_TYPE_LABELS[
                               account.type as keyof typeof ACCOUNT_TYPE_LABELS
                             ] ?? account.type}

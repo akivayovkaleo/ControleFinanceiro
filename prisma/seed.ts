@@ -69,7 +69,7 @@ async function main() {
       name: 'Kaleo',
       email: 'kaleo@exemplo.com',
       passwordHash,
-      avatarColor: '#10b981',
+      avatarColor: '#3b6fd4',
     },
   });
 
@@ -78,7 +78,7 @@ async function main() {
       name: 'Ana',
       email: 'ana@exemplo.com',
       passwordHash,
-      avatarColor: '#8b5cf6',
+      avatarColor: '#d9599b',
     },
   });
 
@@ -134,7 +134,7 @@ async function main() {
       spaceId: casa.id,
       role: 'OWNER',
       displayName: 'Kaleo',
-      color: '#10b981',
+      color: '#3b6fd4',
       monthlyIncomeCents: reais(6500),
     },
   });
@@ -145,7 +145,7 @@ async function main() {
       spaceId: casa.id,
       role: 'MEMBER',
       displayName: 'Ana',
-      color: '#8b5cf6',
+      color: '#d9599b',
       monthlyIncomeCents: reais(4500),
     },
   });
@@ -174,7 +174,7 @@ async function main() {
       spaceId: casa.id,
       name: 'Conta conjunta',
       type: 'CHECKING',
-      color: '#0ea5e9',
+      color: '#3b6fd4',
       icon: 'landmark',
       openingBalanceCents: reais(3500),
       sortOrder: 0,
@@ -186,7 +186,7 @@ async function main() {
       spaceId: casa.id,
       name: 'Cartão do Kaleo',
       type: 'CREDIT_CARD',
-      color: '#10b981',
+      color: '#3b6fd4',
       icon: 'credit-card',
       ownerMembershipId: mKaleo.id,
       creditLimitCents: reais(8000),
@@ -201,7 +201,7 @@ async function main() {
       spaceId: casa.id,
       name: 'Cartão da Ana',
       type: 'CREDIT_CARD',
-      color: '#8b5cf6',
+      color: '#d9599b',
       icon: 'credit-card',
       ownerMembershipId: mAna.id,
       creditLimitCents: reais(6000),
@@ -216,7 +216,7 @@ async function main() {
       spaceId: casa.id,
       name: 'Dinheiro',
       type: 'CASH',
-      color: '#22c55e',
+      color: '#4f9c1f',
       icon: 'banknote',
       openingBalanceCents: reais(300),
       sortOrder: 3,
@@ -275,16 +275,18 @@ async function main() {
     }
   }
 
-  console.log('Gerando três meses de lançamentos…');
+  console.log('Gerando seis meses de lançamentos…');
   const hoje = new Date();
-  const meses = [2, 1, 0].map((back) => {
+  // Seis meses porque é a janela que o painel mostra. Com menos, o gráfico
+  // de evolução nasce com metade achatada em zero e a demo parece quebrada.
+  const meses = [5, 4, 3, 2, 1, 0].map((back) => {
     const d = new Date(Date.UTC(hoje.getUTCFullYear(), hoje.getUTCMonth() - back, 1));
     return { ano: d.getUTCFullYear(), mes: d.getUTCMonth() + 1 };
   });
 
   let seed = 1;
 
-  for (const { ano, mes } of meses) {
+  for (const [indice, { ano, mes }] of meses.entries()) {
     // --- receitas
     await lancar({
       type: 'INCOME',
@@ -305,6 +307,49 @@ async function main() {
       categoryId: cat('Salário'),
       paidBy: mAna.id,
     });
+
+    // Um freelance de vez em quando. Sem isso a linha de receita fica reta e
+    // o gráfico de evolução não mostra nada — a demo precisa parecer a vida
+    // de alguém, não uma planilha gerada.
+    if (indice % 3 === 1) {
+      await lancar({
+        type: 'INCOME',
+        amountCents: jitter(reais(1800), seed++, 0.35),
+        date: utc(ano, mes, 18),
+        description: 'Projeto freelance',
+        accountId: contaConjunta.id,
+        categoryId: cat('Freelance'),
+        paidBy: mAna.id,
+      });
+    }
+
+    // Um mês com gasto grande — a viagem que estoura o orçamento.
+    if (indice === 3) {
+      await lancar({
+        type: 'EXPENSE',
+        amountCents: reais(2400),
+        date: utc(ano, mes, 16),
+        description: 'Passagens e hotel',
+        accountId: cartaoKaleo.id,
+        categoryId: cat('Viagem'),
+        paidBy: mKaleo.id,
+        splitMode: 'EQUAL',
+      });
+    }
+
+    // E outro com uma despesa inesperada de saúde.
+    if (indice === 1) {
+      await lancar({
+        type: 'EXPENSE',
+        amountCents: reais(980),
+        date: utc(ano, mes, 13),
+        description: 'Dentista',
+        accountId: cartaoAna.id,
+        categoryId: cat('Saúde'),
+        paidBy: mAna.id,
+        splitMode: 'OWNER',
+      });
+    }
 
     // --- fixas do casal (proporcional à renda: quem ganha mais paga mais)
     await lancar({
@@ -469,7 +514,7 @@ async function main() {
       name: 'Viagem de fim de ano',
       targetCents: reais(8000),
       targetDate: utc(hoje.getUTCFullYear(), 12, 15),
-      color: '#0891b2',
+      color: '#0e7490',
       icon: 'plane',
     },
   });
@@ -490,7 +535,7 @@ async function main() {
       spaceId: casa.id,
       name: 'Reserva de emergência',
       targetCents: reais(20000),
-      color: '#10b981',
+      color: '#109c86',
       icon: 'shield',
     },
   });

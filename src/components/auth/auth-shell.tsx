@@ -25,16 +25,14 @@ export function AuthShell({
       <main className="flex items-center justify-center px-5 py-10 sm:px-8">
         <div className="w-full max-w-sm animate-fade-in">
           <Link href="/" className="mb-8 inline-flex items-center gap-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand text-brand-fg">
-              <Wallet className="h-5 w-5" aria-hidden />
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand text-brand-fg shadow-brand">
+              <Wallet className="h-[1.15rem] w-[1.15rem]" aria-hidden />
             </span>
-            <span className="text-sm font-semibold tracking-tight text-fg">
-              Controle Financeiro
-            </span>
+            <span className="text-[0.9375rem] font-semibold tracking-tight text-fg">Controle Financeiro</span>
           </Link>
 
-          <h1 className="text-2xl font-semibold tracking-tight text-fg">{title}</h1>
-          <p className="mt-1.5 text-sm text-muted">{subtitle}</p>
+          <h1 className="text-[1.75rem] font-bold tracking-tight text-fg">{title}</h1>
+          <p className="mt-2 text-[0.9375rem] leading-relaxed text-muted">{subtitle}</p>
 
           <div className="mt-7">{children}</div>
 

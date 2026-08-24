@@ -1,3 +1,17 @@
-# Um app de finanças pessoais não tem nada a ganhar sendo indexado.
+# A página de vendas pode ser indexada. O app, não: são finanças de gente
+# de verdade e não há nada a ganhar aparecendo em busca.
 User-agent: *
-Disallow: /
+Allow: /$
+Disallow: /painel
+Disallow: /lancamentos
+Disallow: /orcamentos
+Disallow: /acerto
+Disallow: /metas
+Disallow: /contas
+Disallow: /categorias
+Disallow: /recorrencias
+Disallow: /configuracoes
+Disallow: /mais
+Disallow: /comecar
+Disallow: /entrar
+Disallow: /criar-conta

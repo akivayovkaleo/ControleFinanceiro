@@ -13,6 +13,7 @@ import {
 } from 'recharts';
 import { formatCents, formatCentsCompact } from '@/lib/money';
 import { formatMonthKeyShort } from '@/lib/date';
+import { cn } from '@/lib/utils';
 
 /**
  * Gráficos do painel.
@@ -51,7 +52,7 @@ function ChartTooltip({
   if (!active || !payload?.length) return null;
 
   return (
-    <div className="rounded-xl border border-border bg-surface px-3 py-2 shadow-pop">
+    <div className="rounded-xl border border-border bg-surface px-3 py-2.5 shadow-pop">
       {label !== undefined && (
         <p className="mb-1 text-2xs font-semibold uppercase tracking-wide text-muted">
           {typeof label === 'string' ? formatMonthKeyShort(label) : label}
@@ -74,6 +75,27 @@ function ChartTooltip({
   );
 }
 
+/**
+ * Legenda.
+ *
+ * Duas séries no mesmo gráfico exigem legenda: sem ela, a identidade de cada
+ * linha depende só da cor — e ~8% dos homens não distinguem verde de
+ * vermelho, que é exatamente o par usado aqui. Fica acima do gráfico, onde é
+ * lida antes dos dados, e não flutuando por cima deles.
+ */
+function Legend({ items }: { items: Array<{ label: string; className: string }> }) {
+  return (
+    <ul className="mb-1 flex flex-wrap items-center gap-x-4 gap-y-1">
+      {items.map((item) => (
+        <li key={item.label} className="flex items-center gap-1.5">
+          <span className={cn('h-0.5 w-3.5 rounded-full', item.className)} aria-hidden />
+          <span className="text-2xs font-medium text-muted">{item.label}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function TrendChart({
   data,
   currency,
@@ -85,7 +107,14 @@ export function TrendChart({
   fill?: boolean;
 }) {
   return (
-    <ResponsiveContainer width="100%" height={fill ? '100%' : 220} minHeight={220}>
+    <>
+    <Legend
+      items={[
+        { label: 'Receitas', className: 'bg-income' },
+        { label: 'Despesas', className: 'bg-expense' },
+      ]}
+    />
+    <ResponsiveContainer width="100%" height={fill ? '100%' : 200} minHeight={200}>
       <AreaChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -8 }}>
         <defs>
           <linearGradient id="fillIncome" x1="0" y1="0" x2="0" y2="1">
@@ -103,17 +132,20 @@ export function TrendChart({
           tickFormatter={formatMonthKeyShort}
           tickLine={false}
           axisLine={false}
-          tick={{ fontSize: 11, fill: 'hsl(var(--muted))' }}
-          dy={6}
+          tick={{ fontSize: 10.5, fill: 'hsl(var(--subtle))' }}
+          dy={8}
+          minTickGap={4}
         />
         <YAxis
           tickFormatter={(value: number) => formatCentsCompact(value, currency)}
           tickLine={false}
           axisLine={false}
-          tick={{ fontSize: 11, fill: 'hsl(var(--muted))' }}
-          width={70}
+          tick={{ fontSize: 10.5, fill: 'hsl(var(--subtle))' }}
+          // Largura folgada: com 62px o "R$" de "R$ 13,5 mil" era cortado.
+          width={74}
+          tickCount={4}
         />
-        <Tooltip content={<ChartTooltip currency={currency} />} cursor={{ stroke: 'hsl(var(--border-strong))' }} />
+        <Tooltip content={<ChartTooltip currency={currency} />} cursor={{ stroke: 'hsl(var(--border-strong))', strokeDasharray: '3 3' }} />
 
         <Area
           type="monotone"
@@ -135,6 +167,7 @@ export function TrendChart({
         />
       </AreaChart>
     </ResponsiveContainer>
+    </>
   );
 }
 
@@ -152,10 +185,13 @@ export function CategoryDonut({
           data={data}
           dataKey="amountCents"
           nameKey="name"
-          innerRadius={58}
-          outerRadius={88}
-          paddingAngle={2}
-          strokeWidth={0}
+          innerRadius={56}
+          outerRadius={86}
+          paddingAngle={1.5}
+          // Anel na cor da superfície entre as fatias: o vão de 2px é o que
+          // impede duas cores vizinhas de se fundirem numa mancha só.
+          stroke="hsl(var(--surface))"
+          strokeWidth={2}
           isAnimationActive={false}
         >
           {data.map((entry) => (

@@ -36,7 +36,7 @@ export function Avatar({
         SIZE[size],
         className,
       )}
-      style={{ backgroundColor: color ?? '#64748b' }}
+      style={{ backgroundColor: color ?? '#5b6478' }}
       title={name}
       aria-label={name}
     >
