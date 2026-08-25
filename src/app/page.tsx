@@ -18,7 +18,6 @@ import { getCurrentUser } from '@/lib/auth/guard';
 import { env } from '@/lib/env';
 import { AppPreview } from '@/components/marketing/app-preview';
 import { Button } from '@/components/ui/button';
-import { PLANOS } from '@/lib/planos';
 
 export const metadata: Metadata = {
   title: 'Controle financeiro para você e para vocês dois',
@@ -41,7 +40,6 @@ export default async function LandingPage() {
       <Problema />
       <ComoFunciona />
       <Recursos />
-      <Precos cadastroAberto={cadastroAberto} />
       <Perguntas />
       <Rodape />
     </div>
@@ -64,9 +62,6 @@ function Nav({ cadastroAberto }: { cadastroAberto: boolean }) {
         </span>
 
         <nav className="flex items-center gap-1.5">
-          <Link href="#precos" className="hidden px-3 py-2 text-sm font-medium text-muted transition-colors hover:text-fg sm:block">
-            Preços
-          </Link>
           <Link href="#perguntas" className="hidden px-3 py-2 text-sm font-medium text-muted transition-colors hover:text-fg sm:block">
             Perguntas
           </Link>
@@ -138,7 +133,7 @@ function Hero({ cadastroAberto }: { cadastroAberto: boolean }) {
           </div>
 
           <ul className="mt-8 flex flex-wrap gap-x-6 gap-y-2">
-            {['Sem cartão de crédito', 'Seus dados no seu servidor', 'Código aberto'].map((item) => (
+            {['Grátis e sem anúncios', 'Seus dados no seu servidor', 'Código aberto'].map((item) => (
               <li key={item} className="flex items-center gap-1.5 text-sm text-muted">
                 <Check className="h-4 w-4 shrink-0 text-income" aria-hidden />
                 {item}
@@ -272,81 +267,6 @@ function Recursos() {
   );
 }
 
-/* ---------------------------------------------------------------- preços */
-
-function Precos({ cadastroAberto }: { cadastroAberto: boolean }) {
-  return (
-    <section id="precos" className="mx-auto max-w-6xl px-5 py-16 sm:px-8 sm:py-24">
-      <div className="mx-auto max-w-2xl text-center">
-        <h2 className="text-3xl font-bold tracking-tight text-fg sm:text-4xl">Preços</h2>
-        <p className="mt-4 text-lg leading-relaxed text-muted">
-          Um preço por casal, não por pessoa. Vocês são dois, mas a conta é uma.
-        </p>
-      </div>
-
-      <div className="mx-auto mt-12 grid max-w-4xl gap-6 md:grid-cols-2">
-        {PLANOS.map((plano) => (
-          <div
-            key={plano.id}
-            className={
-              plano.destaque
-                ? 'card surface-sheen relative border-brand/40 p-7 shadow-lift ring-1 ring-brand/20'
-                : 'card surface-sheen p-7'
-            }
-          >
-            {plano.destaque && (
-              <span className="absolute -top-3 left-7 rounded-full bg-brand px-2.5 py-1 text-2xs font-semibold text-brand-fg shadow-brand">
-                {plano.selo}
-              </span>
-            )}
-
-            <h3 className="text-base font-semibold tracking-tight text-fg">{plano.nome}</h3>
-            <p className="mt-1.5 text-sm leading-relaxed text-muted">{plano.resumo}</p>
-
-            <p className="mt-5 flex items-baseline gap-1.5">
-              <span className="text-money-lg font-bold tracking-tight text-fg">{plano.preco}</span>
-              {plano.periodo && <span className="text-sm text-muted">{plano.periodo}</span>}
-            </p>
-
-            <ul className="mt-6 space-y-2.5">
-              {plano.itens.map((item) => (
-                <li key={item} className="flex gap-2.5 text-sm text-fg">
-                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-income" aria-hidden />
-                  {item}
-                </li>
-              ))}
-            </ul>
-
-            {/* Um <Button disabled> dentro de <Link> continuaria navegando —
-                o link é que precisa sumir quando o cadastro está fechado. */}
-            {plano.destino === '/criar-conta' && !cadastroAberto ? (
-              <Button variant="outline" size="lg" className="mt-7 w-full" disabled>
-                Cadastros fechados
-              </Button>
-            ) : (
-              <Link
-                href={plano.destino}
-                className="mt-7 block"
-                {...(plano.destino.startsWith('http')
-                  ? { target: '_blank', rel: 'noopener noreferrer' }
-                  : {})}
-              >
-                <Button
-                  variant={plano.destaque ? 'primary' : 'outline'}
-                  size="lg"
-                  className="w-full"
-                >
-                  {plano.acao}
-                </Button>
-              </Link>
-            )}
-          </div>
-        ))}
-      </div>
-    </section>
-  );
-}
-
 /* ------------------------------------------------------------- perguntas */
 
 function Perguntas() {
@@ -411,7 +331,6 @@ function Rodape() {
         </span>
         <nav className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm text-muted">
           <Link href="/entrar" className="transition-colors hover:text-fg">Entrar</Link>
-          <Link href="#precos" className="transition-colors hover:text-fg">Preços</Link>
           <Link href="/ajuda/senha" className="transition-colors hover:text-fg">Ajuda</Link>
         </nav>
       </div>

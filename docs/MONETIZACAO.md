@@ -1,20 +1,24 @@
 # Monetização — o que existe e o que falta
 
-> Documento honesto. Hoje o projeto **não cobra de ninguém** e não tem
-> nenhuma integração de pagamento. Isto aqui é o mapa do que precisa existir
-> antes de faturar o primeiro real, para ninguém confundir "tem página de
-> preços" com "está vendendo".
+> **Status: decidido não monetizar por enquanto.** O app é gratuito e de
+> código aberto, e a seção de preços foi removida da página de vendas de
+> propósito — anunciar plano pago sem ter cobrança é enganar quem chega.
+>
+> Este documento fica como o mapa do que precisaria existir *se* essa decisão
+> mudar. Nada aqui está construído.
 
-## O que já existe
+## O que já existe (e ajuda se um dia mudar de ideia)
 
-- **Página de vendas** (`/`) com proposta, três passos, recursos, preços,
-  perguntas frequentes e chamadas para ação.
-- **Planos configuráveis** em `src/lib/planos.ts` — nome, preço, o que inclui e
-  para onde o botão leva. É o único arquivo a mexer para trocar a oferta.
-- **Cadastro fechável** (`DISABLE_SIGNUP`, `ALLOWED_EMAILS`), que já serve para
-  um beta fechado ou lista de espera.
+- **Página de vendas** (`/`) com proposta, três passos, recursos e perguntas
+  frequentes. Serve de porta de entrada mesmo sem cobrar nada.
+- **Cadastro fechável** (`DISABLE_SIGNUP`, `ALLOWED_EMAILS`) — já serve para um
+  beta fechado ou lista de espera, sem escrever uma linha a mais.
 - **Multi-inquilino de verdade**: espaços são isolados por consulta, não por
-  tela escondida. É a base necessária para um SaaS.
+  tela escondida. É a base necessária para um SaaS, e ela já está pronta.
+
+> A seção de preços e o arquivo `src/lib/planos.ts` existiram no commit
+> `b4a1722` e foram removidos no seguinte. Para trazê-los de volta, recupere
+> os dois de lá — a estrutura estava pronta, só faltava a cobrança de verdade.
 
 ## O que falta
 
@@ -83,7 +87,7 @@ Cobrando de terceiros e guardando dado financeiro deles:
 - **Migração para PostgreSQL.** SQLite é ótimo para uma instalação de casal;
   para muitos clientes num servidor só, o caminho está em `docs/DEPLOY.md`.
 
-## Ordem sugerida
+## Ordem sugerida, se a decisão mudar
 
 1. Validar que alguém paga: página no ar + lista de espera (o cadastro fechado
    já serve). **Não construa cobrança antes de ter alguém querendo pagar.**

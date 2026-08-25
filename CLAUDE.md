@@ -154,7 +154,6 @@ src/
     auth/                senha (Argon2id), sessão, rate limit, guardas
     validation/          schemas Zod
     presets.ts           categorias, contas e paleta validada
-    planos.ts            planos da página de vendas (preço mora aqui)
   server/
     queries/             leitura (saldos, painel, acerto)
     actions/             escrita (Server Actions)
@@ -194,7 +193,7 @@ npm run senha -- email@exemplo.com   # redefine a senha de alguém
 
 - `docs/PRODUTO.md` — o que o app faz e para quem, tela a tela
 - `docs/DESIGN.md` — tipografia, cor, gráficos e as regras para mexer nisso
-- `docs/MONETIZACAO.md` — o que falta para cobrar de verdade
+- `docs/MONETIZACAO.md` — por que o app é gratuito hoje, e o que faltaria para cobrar
 - `docs/ARQUITETURA.md` — como as peças se encaixam
 - `docs/MODELO-DE-DADOS.md` — cada tabela e por que ela existe
 - `docs/SEGURANCA.md` — o modelo de ameaças e o que foi feito

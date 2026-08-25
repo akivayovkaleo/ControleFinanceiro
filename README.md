@@ -5,8 +5,8 @@ privado; quando quiserem, criam um espaço compartilhado só para as contas de
 vocês dois — com divisão de despesas e acerto de contas calculado, não
 estimado.
 
-Roda na sua máquina ou no seu servidor. Sem nuvem de terceiros, sem
-rastreadores, sem anúncios.
+Roda na sua máquina ou no seu servidor. Gratuito e de código aberto: sem nuvem
+de terceiros, sem rastreadores, sem anúncios, sem plano pago.
 
 ---
 
