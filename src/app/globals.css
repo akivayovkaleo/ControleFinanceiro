@@ -110,6 +110,82 @@
     --cat-8: 0 66% 54%;
   }
 
+  /* --- épocas da vila -----------------------------------------------------
+     Namespace SEPARADO de propósito. A vila é uma projeção decorativa do
+     ledger e tem tema próprio por época; ela NÃO pode mexer em --brand nem
+     nas cores semânticas reservadas (--income, --expense, --transfer,
+     --warning), que continuam significando só estado. Ver a regra 5 em
+     CLAUDE.md e docs/DESIGN.md.
+
+     As cinco paletas são escuras nos dois temas do app: o mapa é um
+     tabuleiro, não uma superfície de leitura. Por isso `data-era` fica no
+     container do mapa, nunca no <html>. ------------------------------- */
+  :root,
+  [data-era='moderno'] {
+    --era-canvas: 222 47% 11%;
+    --era-surface: 219 35% 16%;
+    --era-surface-2: 221 34% 21%;
+    --era-line: 215 25% 27%;
+    --era-ink: 216 48% 94%;
+    --era-muted: 215 20% 65%;
+    --era-accent: 217 91% 60%;
+    --era-accent-ink: 0 0% 100%;
+    --era-ground: 145 45% 34%;
+    --era-ground-alt: 145 45% 28%;
+  }
+
+  [data-era='antigo'] {
+    --era-canvas: 33 53% 7%;
+    --era-surface: 31 46% 12%;
+    --era-surface-2: 31 45% 17%;
+    --era-line: 36 49% 24%;
+    --era-ink: 37 64% 90%;
+    --era-muted: 37 38% 62%;
+    --era-accent: 32 95% 44%;
+    --era-accent-ink: 33 75% 9%;
+    --era-ground: 34 47% 47%;
+    --era-ground-alt: 33 52% 39%;
+  }
+
+  [data-era='greco_romano'] {
+    --era-canvas: 207 41% 11%;
+    --era-surface: 207 36% 17%;
+    --era-surface-2: 207 36% 23%;
+    --era-line: 205 32% 34%;
+    --era-ink: 203 62% 96%;
+    --era-muted: 204 35% 72%;
+    --era-accent: 199 89% 48%;
+    --era-accent-ink: 199 84% 10%;
+    --era-ground: 176 32% 43%;
+    --era-ground-alt: 175 33% 35%;
+  }
+
+  [data-era='medieval'] {
+    --era-canvas: 120 13% 9%;
+    --era-surface: 114 14% 15%;
+    --era-surface-2: 108 15% 20%;
+    --era-line: 102 14% 29%;
+    --era-ink: 83 35% 93%;
+    --era-muted: 94 16% 67%;
+    --era-accent: 88 32% 51%;
+    --era-accent-ink: 92 42% 9%;
+    --era-ground: 95 39% 39%;
+    --era-ground-alt: 96 41% 32%;
+  }
+
+  [data-era='futurista'] {
+    --era-canvas: 252 52% 6%;
+    --era-surface: 253 48% 11%;
+    --era-surface-2: 252 47% 17%;
+    --era-line: 254 41% 30%;
+    --era-ink: 250 100% 95%;
+    --era-muted: 250 49% 75%;
+    --era-accent: 188 86% 53%;
+    --era-accent-ink: 196 73% 6%;
+    --era-ground: 254 49% 23%;
+    --era-ground-alt: 253 46% 31%;
+  }
+
   * {
     border-color: hsl(var(--border));
   }

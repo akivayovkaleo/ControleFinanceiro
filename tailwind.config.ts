@@ -41,6 +41,20 @@ const config: Config = {
           7: 'hsl(var(--cat-7) / <alpha-value>)',
           8: 'hsl(var(--cat-8) / <alpha-value>)',
         },
+        /* Tema da vila, por época. Namespace à parte das cores da interface:
+           a vila nunca empresta --brand nem as cores semânticas. */
+        era: {
+          canvas: 'hsl(var(--era-canvas) / <alpha-value>)',
+          surface: 'hsl(var(--era-surface) / <alpha-value>)',
+          'surface-2': 'hsl(var(--era-surface-2) / <alpha-value>)',
+          line: 'hsl(var(--era-line) / <alpha-value>)',
+          ink: 'hsl(var(--era-ink) / <alpha-value>)',
+          muted: 'hsl(var(--era-muted) / <alpha-value>)',
+          accent: 'hsl(var(--era-accent) / <alpha-value>)',
+          'accent-ink': 'hsl(var(--era-accent-ink) / <alpha-value>)',
+          ground: 'hsl(var(--era-ground) / <alpha-value>)',
+          'ground-alt': 'hsl(var(--era-ground-alt) / <alpha-value>)',
+        },
         income: {
           DEFAULT: 'hsl(var(--income) / <alpha-value>)',
           soft: 'hsl(var(--income-soft) / <alpha-value>)',

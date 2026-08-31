@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import {
   ArrowLeftRight,
+  Castle,
   Handshake,
   LayoutDashboard,
   PiggyBank,
@@ -34,6 +35,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/orcamentos', label: 'Orçamentos', icon: PiggyBank, primary: true },
   { href: '/acerto', label: 'Acerto', icon: Handshake, sharedOnly: true, primary: true },
   { href: '/metas', label: 'Metas', icon: Target },
+  { href: '/vila', label: 'Vila', icon: Castle },
   { href: '/contas', label: 'Contas', icon: Wallet },
   { href: '/categorias', label: 'Categorias', icon: Tags },
   { href: '/recorrencias', label: 'Recorrências', icon: Repeat },

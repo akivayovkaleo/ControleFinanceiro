@@ -11,6 +11,15 @@
 /** Maior valor que cabe num INTEGER de 32 bits: R$ 21.474.836,47. */
 export const MAX_CENTS = 2_147_483_647;
 
+/**
+ * Marca nominal para deixar explícito na assinatura que o número é centavos.
+ *
+ * Não muda nada em runtime — é `number`. Existe para que uma função como
+ * `tierFromValue(valueCents: Cents, ...)` diga na própria assinatura qual é a
+ * unidade, em vez de depender só do sufixo do nome do parâmetro.
+ */
+export type Cents = number;
+
 export type Currency = 'BRL' | 'USD' | 'EUR';
 
 const LOCALE_BY_CURRENCY: Record<string, string> = {

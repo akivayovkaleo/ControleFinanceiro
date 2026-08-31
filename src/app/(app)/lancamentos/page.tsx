@@ -6,6 +6,9 @@ import { db } from '@/lib/db';
 import { getActiveSpace, firstParam, type SearchParams } from '@/lib/space-context';
 import { currentMonthKey, monthRange, parseMonthKey } from '@/lib/date';
 import { getSpaceCatalog } from '@/server/queries/catalog';
+import { getCategoryIdsForBuilding } from '@/server/queries/village';
+import { CATEGORY_LABELS } from '@/lib/village/catalog';
+import { parseBuildingCategory, VILLAGE_PARAM } from '@/lib/village/layout';
 import { PageHeader } from '@/components/app/page-header';
 import { MonthPicker } from '@/components/app/month-picker';
 import { FilterBar } from '@/components/transactions/filter-bar';
@@ -38,11 +41,22 @@ export default async function TransactionsPage({
   const membershipId = firstParam(params, 'pessoa');
   const search = firstParam(params, 'busca');
 
+  // Filtro vindo do mapa da vila: um prédio agrupa várias categorias, então
+  // `?vila=casa` vira uma lista de ids. Um `?categoria=` explícito continua
+  // mandando — ele é mais específico que o prédio.
+  const building = parseBuildingCategory(firstParam(params, VILLAGE_PARAM));
+  const buildingCategoryIds =
+    building && !categoryId ? await getCategoryIdsForBuilding(space.id, building) : null;
+
   const where: Prisma.TransactionWhereInput = {
     spaceId: space.id,
     date: { gte: start, lt: end },
     ...(type === 'INCOME' || type === 'EXPENSE' || type === 'TRANSFER' ? { type } : {}),
-    ...(categoryId ? { categoryId } : {}),
+    ...(categoryId
+      ? { categoryId }
+      : buildingCategoryIds
+        ? { categoryId: { in: buildingCategoryIds } }
+        : {}),
     ...(accountId ? { OR: [{ accountId }, { toAccountId: accountId }] } : {}),
     ...(membershipId ? { paidByMembershipId: membershipId } : {}),
     // SQLite no Prisma não suporta `mode: 'insensitive'`; o collation padrão
@@ -103,6 +117,20 @@ export default async function TransactionsPage({
           </div>
         }
       />
+
+      {building && (
+        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-brand-border bg-brand-soft px-4 py-2.5 text-sm">
+          <span className="text-fg">
+            Mostrando só o prédio <strong className="font-semibold">{CATEGORY_LABELS[building]}</strong> da vila.
+          </span>
+          <Link
+            href={{ pathname: '/lancamentos', query: { space: space.id, mes: month } }}
+            className="font-medium text-brand hover:underline"
+          >
+            Ver tudo
+          </Link>
+        </div>
+      )}
 
       <div className="mb-4 grid grid-cols-3 gap-3">
         <div className="card px-4 py-3">

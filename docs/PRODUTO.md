@@ -73,6 +73,7 @@ Se errar a data, dá para desfazer.
 | `/contas` | Contas com saldo calculado, limite de cartão, dono (conjunta ou de alguém) |
 | `/categorias` | Gerenciamento em lista, edição no lugar |
 | `/recorrencias` | O que se repete todo mês |
+| `/vila` | O mesmo dinheiro visto como um vilarejo isométrico: cada prédio é um grupo de categorias e cresce conforme você organiza, não conforme gasta |
 | `/configuracoes` | Perfil, senha, sessões ativas, espaços, membros e convites |
 
 ## Princípios de interface

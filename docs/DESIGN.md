@@ -102,6 +102,21 @@ Cor nunca é o único sinal:
 - variação no cartão de indicador tem **seta**, além da cor;
 - categorias no gráfico têm **nome e valor** na lista ao lado.
 
+## O tema da vila
+
+A vila (`/vila`) tem paleta própria, por época, no namespace `--era-*`. Ela é
+separada de propósito:
+
+- a vila **nunca** empresta `--brand` nem as semânticas (`--income`,
+  `--expense`, `--transfer`, `--warning`) — essas continuam significando só
+  estado, e só na interface;
+- as cinco paletas de época são escuras nos dois temas do app. O mapa é um
+  **tabuleiro**, não superfície de leitura. Por isso `data-era` fica no
+  container do mapa, nunca no `<html>`;
+- as cores dentro do catálogo de estruturas (`badgeColor`, `pixelMatrixColor`
+  em `lib/village/catalog.ts`) são **dado**, não token: são a paleta provisória
+  no lugar dos sprites em pixel art. Saem de lá quando os PNGs chegarem.
+
 ## Regras para mexer aqui
 
 1. **Nunca escreva cor literal num componente.** Use um token. Se falta um,
@@ -111,3 +126,5 @@ Cor nunca é o único sinal:
 4. **Todo texto de valor precisa de `tabular`.** Sem isso a coluna serrilha.
 5. **Tema escuro não é o claro invertido.** Os cinzas ganham fundo azulado e as
    semânticas são clareadas para manter contraste.
+6. **A vila fica no namespace dela.** Token de época é `--era-*` e só vale
+   dentro do mapa.

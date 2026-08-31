@@ -206,3 +206,43 @@ retroativamente. "Quanto gastei com transporte em março?" precisa dar a mesma
 resposta hoje e daqui a um ano.
 
 Só o que nunca foi usado pode ser removido de verdade.
+
+---
+
+## 16. A vila cresce por diversidade, não por valor
+
+**Decisão:** no modo padrão, um prédio da vila sobe de nível pela quantidade de
+categorias distintas com lançamento, não pelo dinheiro que passou por ele.
+
+**Por quê:** a versão óbvia da gamificação — quanto mais você gasta, maior o
+prédio — transforma um app de controle financeiro num incentivo a gastar. É o
+inverso do produto. Premiar diversidade premia o que a gente realmente quer que
+a pessoa faça: classificar os lançamentos em vez de jogar tudo em "Outras
+despesas".
+
+O modo por valor continua existindo, como opção, com limiares **por categoria**
+(uma casa e um gasto de saúde não vivem na mesma escala). Ele não é o padrão.
+
+**Descartado:** limiares globais de valor (5.000 / 50.000) em unidade ambígua,
+que era como o protótipo original fazia. Não dizia se era real ou centavo e
+tratava "casa" e "saúde" com a mesma régua.
+
+---
+
+## 17. A vila não tem tabela própria
+
+**Decisão:** `/vila` é uma projeção pura sobre `Transaction` e `Category`. Época
+e regra de crescimento moram na query string, não no banco.
+
+**Por quê:** a vila não produz dado financeiro — ela desenha o que já existe.
+Dar a ela tabelas próprias criaria um segundo lugar onde a verdade poderia
+divergir do ledger, que é exatamente o problema que o app existe para não ter.
+
+Consequência aceita: a época escolhida não sobrevive a um link novo. Quando
+virar preferência de verdade, são três colunas em `User` e
+`parseVillagePreferences` continua sendo o ponto único de validação.
+
+**Descartado:** portar o `user_settings` do protótipo (Drizzle/Postgres) junto
+com o resto. A tabela existia lá porque aquele projeto tinha um shell de app
+inteiro alternável; aqui a vila é uma tela.
+

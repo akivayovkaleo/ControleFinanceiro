@@ -63,6 +63,33 @@ transação é SEMPRE exatamente `Transaction.amountCents`. Garantido por
 `splitEvenly` / `splitByWeights` (método do maior resto) e verificado em runtime
 por `assertSharesBalance`.
 
+## A camada opcional: a vila
+
+Além das telas diretas, o mesmo ledger pode ser visto como um **vilarejo
+isométrico** em `/vila`. Cada prédio é um *bucket* de categorias (casa,
+locomoção, saúde, estudos, investimentos, personalizado) e o hub central soma
+a vila inteira.
+
+**A vila é projeção, nunca fonte.** Ela lê o ledger e desenha; não grava nada,
+não tem tabela própria e não muda um centavo de lugar. Trocar a época
+(medieval, futurista…) é 100% cosmético.
+
+### A regra anti-inflação
+
+O modo de crescimento padrão é **diversidade**: um prédio sobe de nível pela
+quantidade de **categorias distintas com lançamento** nele, não pelo valor.
+
+Isso é deliberado. Uma vila que cresce com o valor gasto ensina exatamente a
+coisa errada — quanto mais você torra, mais bonita ela fica. Aqui, gastar
+R$ 500 mil numa categoria só mantém o prédio no nível 1; organizar em três
+categorias sobe para o nível 3. O que a vila premia é organizar as finanças.
+
+Existe um modo alternativo por valor, com limiares **por categoria** (uma casa
+não se compara a um gasto de saúde), mas ele não é o padrão. A propriedade
+"no modo diversidade, o valor não altera o tier" está fixada em
+`tests/village-growth.test.ts` — se esse teste cair, a gamificação virou um
+incentivo a gastar.
+
 ## Regras que valem para o projeto inteiro
 
 ### 1. Dinheiro é inteiro em centavos
@@ -146,6 +173,7 @@ src/
     app/                 casca (sidebar, nav mobile, seletor de espaço)
     transactions/        formulário de lançamento e editor de divisão
     dashboard/ planning/ catalog/ settings/ settlement/ recurrences/
+    village/             mapa isométrico (só desenha; não calcula nada)
   lib/
     money.ts             ⭐ centavos, parsing pt-BR/en-US, divisão sem perda
     split.ts             ⭐ cálculo dos shares por modo de divisão
@@ -154,16 +182,20 @@ src/
     auth/                senha (Argon2id), sessão, rate limit, guardas
     validation/          schemas Zod
     presets.ts           categorias, contas e paleta validada
+    village/             ⭐ a vila: catálogo, crescimento, projeção do ledger
   server/
-    queries/             leitura (saldos, painel, acerto)
+    queries/             leitura (saldos, painel, acerto, vila)
     actions/             escrita (Server Actions)
   middleware.ts          redirecionamento e checagem de origem (não é a
                          fronteira de segurança — ver docs/SEGURANCA.md)
 tests/                   testes da lógica financeira (o que não pode errar)
 ```
 
-Os quatro arquivos marcados com ⭐ concentram a lógica que não pode estar
-errada. Todos têm testes. **Mexeu neles, rode `npm test`.**
+Os arquivos marcados com ⭐ concentram a lógica que não pode estar errada.
+Todos têm testes. **Mexeu neles, rode `npm test`.**
+
+Em `lib/village/`, os dois que importam são `growth.ts` (a regra
+anti-inflação) e `projection.ts` (em qual prédio cada categoria cai).
 
 ## Comandos
 
