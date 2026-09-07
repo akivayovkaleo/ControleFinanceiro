@@ -39,7 +39,29 @@ const nextConfig: NextConfig = {
   output: process.env.DOCKER_BUILD === '1' ? 'standalone' : undefined,
   serverExternalPackages: ['@node-rs/argon2'],
   async headers() {
-    return [{ source: '/:path*', headers: securityHeaders }];
+    return [
+      { source: '/:path*', headers: securityHeaders },
+      /**
+       * Anexos são bytes que um usuário subiu, então merecem a política mais
+       * apertada que existe: nada carrega, nada executa, e a resposta fica
+       * isolada num sandbox.
+       *
+       * Precisa estar aqui, e não só nos cabeçalhos da rota: os headers do
+       * next.config são aplicados por cima da resposta e sobrescreveriam o
+       * CSP que a rota define. Esta entrada vem depois da geral, então é ela
+       * que vale para este caminho.
+       */
+      {
+        source: '/api/anexos/:path*',
+        headers: [
+          ...securityHeaders.filter((h) => h.key !== 'Content-Security-Policy'),
+          {
+            key: 'Content-Security-Policy',
+            value: "default-src 'none'; img-src 'self'; frame-ancestors 'none'; sandbox",
+          },
+        ],
+      },
+    ];
   },
 };
 
