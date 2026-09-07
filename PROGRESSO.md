@@ -2,10 +2,14 @@
 
 ## Status atual
 
-Etapa 1 (comparação dos dois lados) **concluída**. Aguardando decisão do Kaleo
-sobre a direção da migração — ver "Pontos que precisam da minha decisão".
+Decisões do Kaleo tomadas (ver "Decisões tomadas"). Migração em andamento com a
+**raiz como base**.
 
-Nenhum código foi movido ainda. A raiz continua intacta e funcionando.
+Portando funcionalidades do `-drizzle` uma a uma. Cartão de crédito e parcelas
+já entraram. Agora: investimentos e patrimônio líquido.
+
+O app continua funcionando de ponta a ponta a cada commit — `npm run check`
+passa (typecheck + 192 testes).
 
 ---
 
@@ -68,17 +72,34 @@ interiores de prédio).
       (Os erros de typecheck que aparecem vêm do clone `ControleFinanceiro-drizzle/`
       aninhado, que o tsconfig da raiz está incluindo — some quando a pasta sair.)
 
+- [x] **Etapa 2 — decisões do Kaleo colhidas.** Raiz é a base; vila da raiz
+      mantida; portar cartão+parcelas, investimentos, relatórios, anexos+tags;
+      IA fica para depois do beta.
+
+- [x] **Etapa 3 — cartão de crédito e compras parceladas.** Commit `d8732e1`.
+      - `src/lib/credit-card.ts` — ciclos de fatura, faturas, limite. Adaptado
+        de string ISO para `Date` em meia-noite UTC (regra 3 do CLAUDE.md).
+      - `src/lib/installments.ts` — parcelamento reusando `splitEvenly`, em vez
+        de reimplementar a distribuição do centavo que sobra.
+      - Schema: `Account.statementInclusive`, `model InstallmentPlan`,
+        `Transaction.installmentPlanId/Number/Total/statementCloseDate`.
+        Migration `20260907183204_cartao_de_credito_e_parcelas`.
+      - 44 testes novos. Total: **192 passando**, typecheck limpo.
+
+- [x] **Etapa 4 (parcial) — clone do `-drizzle` tirado de dentro do repositório.**
+      Estava em `ControleFinanceiro-drizzle/` dentro da raiz, e o `tsconfig` da
+      raiz o incluía no typecheck. Movido para `C:\Users\kaleo\_drizzle-source`
+      enquanto ainda serve de fonte; apagar no fim.
+
 ## Pendente
 
-- [ ] Etapa 2 — plano de migração detalhado (depende da decisão abaixo)
-- [ ] Etapa 3 — portar cartão de crédito + parcelas
-- [ ] Etapa 4 — portar investimentos / patrimônio líquido
-- [ ] Etapa 5 — portar relatórios
-- [ ] Etapa 6 — decidir e executar a vila
+- [ ] Etapa 5 — investimentos / patrimônio líquido
+- [ ] Etapa 6 — relatórios
 - [ ] Etapa 7 — anexos e tags
-- [ ] Etapa 8 — service worker (PWA offline de verdade; hoje só há manifest)
-- [ ] Etapa 9 — remover `ControleFinanceiro-drizzle/`
-- [ ] Etapa 10 — relatório final
+- [ ] Etapa 8 — telas do cartão (fatura, limite) e formulário de parcelamento
+- [ ] Etapa 9 — service worker (PWA offline de verdade; hoje só há manifest)
+- [ ] Etapa 10 — apagar `C:\Users\kaleo\_drizzle-source`
+- [ ] Etapa 11 — relatório final
 
 ## Decisões tomadas
 
@@ -92,18 +113,24 @@ interiores de prédio).
   OWASP) + sessão em cookie assinado e em tabela (revogável na hora), que é
   mais forte. Não há motivo para trocar.
 
+- **A vila da raiz fica.** Kaleo escolheu manter a vila SVG com a regra
+  anti-inflação (prédio sobe por diversidade de categorias, não por valor) e
+  enriquecer o visual depois. O motor canvas do `-drizzle` cresce por valor e é
+  individual — adotá-lo agora significaria reescrever crescimento e adaptar a
+  espaços compartilhados, com o app parado no meio.
+- **Assistente de IA fica para depois do beta.** Precisa de chave da Anthropic e
+  tem custo por uso; não é necessário para o app ser usado todo dia.
+- **Pagamento de fatura continua sendo uma transferência**, não um modelo
+  próprio. O saldo negativo do cartão já é a dívida, e isso faz o limite
+  disponível sair certo sem contar compras não faturadas e faturas em aberto
+  duas vezes. Só foi preciso `statementCloseDate` para saber qual fatura um
+  pagamento atrasado quita.
+
 ## Pontos que precisam da minha decisão (Kaleo)
 
-1. **Direção da migração** — confirmar que a raiz é a base e o `-drizzle` é só
-   fonte de funcionalidades. O briefing pedia o contrário, mas o contrário
-   apaga espaços compartilhados, divisão e acerto.
-2. **A vila** — manter a da raiz (SVG, regra anti-inflação testada) e enriquecer
-   aos poucos, ou portar o motor canvas do `-drizzle` (5 épocas, personagens,
-   interiores)? O motor do `-drizzle` cresce por valor/individual; casar isso
-   com a regra anti-inflação e com espaços compartilhados é trabalho real.
-3. **Assistente de IA** — portar? Precisa de chave da Anthropic e tem custo por
-   uso. Não é necessário para o beta.
+Nenhum aberto no momento. (Os três anteriores foram respondidos: raiz como base,
+vila da raiz mantida, IA adiada.)
 
 ## Última atualização
 
-Etapa 1 — comparação concluída. Sem commits de código ainda.
+Etapa 3 concluída — commit `d8732e1`. Testes: 192 passando, typecheck limpo.
