@@ -9,6 +9,7 @@ import {
   Settings,
   Tags,
   Target,
+  TrendingUp,
   Wallet,
 } from 'lucide-react';
 
@@ -35,6 +36,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/orcamentos', label: 'Orçamentos', icon: PiggyBank, primary: true },
   { href: '/acerto', label: 'Acerto', icon: Handshake, sharedOnly: true, primary: true },
   { href: '/metas', label: 'Metas', icon: Target },
+  { href: '/investimentos', label: 'Investimentos', icon: TrendingUp },
   { href: '/vila', label: 'Vila', icon: Castle },
   { href: '/contas', label: 'Contas', icon: Wallet },
   { href: '/categorias', label: 'Categorias', icon: Tags },

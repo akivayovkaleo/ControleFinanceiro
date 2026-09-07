@@ -48,7 +48,11 @@ export type AuditAction =
   | 'recurrence.delete'
   | 'recurrence.materialize'
   | 'settlement.create'
-  | 'settlement.delete';
+  | 'settlement.delete'
+  | 'holding.create'
+  | 'holding.update'
+  | 'holding.delete'
+  | 'networth.capture';
 
 export async function audit(params: {
   action: AuditAction;
