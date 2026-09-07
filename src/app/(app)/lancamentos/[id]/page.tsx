@@ -7,6 +7,7 @@ import { getActiveSpace, type SearchParams } from '@/lib/space-context';
 import { getSpaceCatalog } from '@/server/queries/catalog';
 import { TransactionForm } from '@/components/transactions/transaction-form';
 import { TransactionActions } from '@/components/transactions/transaction-actions';
+import { AttachmentPanel } from '@/components/transactions/attachment-panel';
 import { Card, CardBody } from '@/components/ui/card';
 import { toDateInput } from '@/lib/date';
 import type { SplitMode } from '@/lib/split';
@@ -27,7 +28,14 @@ export default async function EditTransactionPage({
   // O filtro por spaceId é o que impede abrir um lançamento de outro espaço.
   const transaction = await db.transaction.findFirst({
     where: { id, spaceId: space.id },
-    include: { shares: true, tags: { select: { tagId: true } } },
+    include: {
+      shares: true,
+      tags: { select: { tagId: true } },
+      attachments: {
+        select: { id: true, filename: true, mimeType: true, sizeBytes: true },
+        orderBy: { createdAt: 'asc' },
+      },
+    },
   });
   if (!transaction) notFound();
 
@@ -92,6 +100,14 @@ export default async function EditTransactionPage({
           />
         </CardBody>
       </Card>
+
+      <div className="mt-5">
+        <AttachmentPanel
+          spaceId={space.id}
+          transactionId={transaction.id}
+          attachments={transaction.attachments}
+        />
+      </div>
     </div>
   );
 }

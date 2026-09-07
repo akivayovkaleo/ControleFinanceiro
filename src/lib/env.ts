@@ -50,6 +50,15 @@ const schema = z.object({
 
   /** URL pública, usada para montar links de convite. */
   APP_URL: z.string().url().optional(),
+
+  /**
+   * Onde os comprovantes anexados ficam guardados.
+   *
+   * ATENÇÃO AO BACKUP: com anexos, copiar o arquivo do SQLite deixa de ser o
+   * backup inteiro — esta pasta precisa ir junto, ou os lançamentos voltam
+   * apontando para comprovantes que não existem mais. Ver docs/DEPLOY.md.
+   */
+  ATTACHMENTS_DIR: z.string().min(1).default('./data/anexos'),
 });
 
 function loadEnv() {

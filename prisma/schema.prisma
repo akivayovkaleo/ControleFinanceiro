@@ -121,6 +121,7 @@ model Space {
   holdings          Holding[]
   netWorthSnapshots NetWorthSnapshot[]
   tags              Tag[]
+  attachments       Attachment[]
 }
 
 enum MemberRole {
@@ -333,8 +334,9 @@ model Transaction {
   /// uma compra parcelada — deixar parcelas órfãs seria pior.
   installmentPlan InstallmentPlan? @relation(fields: [installmentPlanId], references: [id], onDelete: Cascade)
 
-  shares TransactionShare[]
-  tags   TransactionTag[]
+  shares      TransactionShare[]
+  tags        TransactionTag[]
+  attachments Attachment[]
 
   /// Alvo da chave estrangeira composta de TransactionTag — ver lá o porquê.
   @@unique([spaceId, id])
@@ -679,5 +681,44 @@ model TransactionTag {
 
   @@id([transactionId, tagId])
   @@index([tagId])
+  @@index([spaceId])
+}
+
+// ===========================================================================
+// Anexos
+// ===========================================================================
+
+/// Comprovante de um lançamento.
+///
+/// Os bytes NÃO ficam no banco: ficam em disco, sob `ATTACHMENTS_DIR`, e aqui
+/// guarda-se apenas o ponteiro. Blob em SQLite incharia o arquivo do banco e
+/// tornaria cada backup uma cópia de tudo outra vez.
+///
+/// ISSO MUDA O BACKUP: com anexos, copiar o arquivo do SQLite deixa de ser o
+/// backup inteiro — a pasta precisa ir junto. Ver docs/DEPLOY.md.
+model Attachment {
+  id            String @id @default(cuid())
+  spaceId       String
+  transactionId String
+
+  /// Nome que a pessoa vê, como veio do dispositivo dela. Nunca usado como
+  /// caminho em disco — é dado, não endereço.
+  filename  String
+  mimeType  String
+  sizeBytes Int
+
+  /// Nome do arquivo em disco. Opaco para o resto do app e gerado pelo
+  /// servidor: é o que impede um nome de arquivo malicioso virar caminho.
+  storageKey String @unique
+
+  uploadedByMembershipId String?
+  createdAt              DateTime @default(now())
+
+  space       Space       @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  /// Chave composta pelo mesmo motivo de TransactionTag: sem ela, nada no banco
+  /// impediria pendurar um anexo num lançamento de outro espaço.
+  transaction Transaction @relation(fields: [spaceId, transactionId], references: [spaceId, id], onDelete: Cascade)
+
+  @@index([transactionId])
   @@index([spaceId])
 }
