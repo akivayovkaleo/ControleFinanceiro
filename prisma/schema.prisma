@@ -107,16 +107,17 @@ model Space {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  memberships  Membership[]
-  accounts     Account[]
-  categories   Category[]
-  transactions Transaction[]
-  budgets      Budget[]
-  goals        Goal[]
-  recurrences  Recurrence[]
-  settlements  Settlement[]
-  invites      Invite[]
-  auditLogs    AuditLog[]
+  memberships      Membership[]
+  accounts         Account[]
+  categories       Category[]
+  transactions     Transaction[]
+  budgets          Budget[]
+  goals            Goal[]
+  recurrences      Recurrence[]
+  settlements      Settlement[]
+  invites          Invite[]
+  auditLogs        AuditLog[]
+  installmentPlans InstallmentPlan[]
 }
 
 enum MemberRole {
@@ -202,6 +203,11 @@ model Account {
   statementDay        Int?
   /// Dia de vencimento da fatura (apenas para CREDIT_CARD).
   dueDay              Int?
+  /// A compra feita NO dia do fechamento entra nessa fatura?
+  /// Os emissores divergem (Itaú/Bradesco incluem, Nubank empurra), e a escolha
+  /// muda o valor de duas faturas de uma vez sem dar erro nenhum — por isso é
+  /// configurável, com o padrão brasileiro mais comum. Ver src/lib/credit-card.ts.
+  statementInclusive  Boolean     @default(true)
   color               String      @default("#5b6478")
   icon                String      @default("wallet")
   archived            Boolean     @default(false)
@@ -212,9 +218,10 @@ model Account {
   space           Space       @relation(fields: [spaceId], references: [id], onDelete: Cascade)
   ownerMembership Membership? @relation("AccountOwner", fields: [ownerMembershipId], references: [id], onDelete: SetNull)
 
-  transactions Transaction[] @relation("TransactionAccount")
-  transfersIn  Transaction[] @relation("TransactionToAccount")
-  recurrences  Recurrence[]
+  transactions     Transaction[]     @relation("TransactionAccount")
+  transfersIn      Transaction[]     @relation("TransactionToAccount")
+  recurrences      Recurrence[]
+  installmentPlans InstallmentPlan[]
 
   @@index([spaceId, archived])
 }
@@ -238,10 +245,11 @@ model Category {
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
 
-  space        Space         @relation(fields: [spaceId], references: [id], onDelete: Cascade)
-  transactions Transaction[]
-  budgets      Budget[]
-  recurrences  Recurrence[]
+  space            Space             @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  transactions     Transaction[]
+  budgets          Budget[]
+  recurrences      Recurrence[]
+  installmentPlans InstallmentPlan[]
 
   @@unique([spaceId, name, kind])
   @@index([spaceId, kind, archived])
@@ -295,6 +303,18 @@ model Transaction {
   /// Preenchido quando a transação foi incluída num acerto de contas já quitado.
   settlementId String?
 
+  /// Parcela de uma compra parcelada. Cada parcela é uma Transaction própria
+  /// para que extrato e orçamento vejam o valor que cai em cada mês.
+  installmentPlanId String?
+  /// 1-indexado, como aparece na fatura ("3" de "3/12").
+  installmentNumber Int?
+  installmentTotal  Int?
+
+  /// Só em pagamento de fatura de cartão: qual fatura este pagamento quita,
+  /// identificada pela data de fechamento dela. Sem isto, um pagamento feito
+  /// com atraso seria atribuído à fatura errada só pela data. Ver src/lib/credit-card.ts.
+  statementCloseDate DateTime?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -305,6 +325,9 @@ model Transaction {
   paidBy     Membership? @relation("TransactionPaidBy", fields: [paidByMembershipId], references: [id], onDelete: SetNull)
   recurrence Recurrence? @relation(fields: [recurrenceId], references: [id], onDelete: SetNull)
   settlement Settlement? @relation(fields: [settlementId], references: [id], onDelete: SetNull)
+  /// Cascade: apagar o plano apaga as parcelas. É o que se espera ao desfazer
+  /// uma compra parcelada — deixar parcelas órfãs seria pior.
+  installmentPlan InstallmentPlan? @relation(fields: [installmentPlanId], references: [id], onDelete: Cascade)
 
   shares TransactionShare[]
 
@@ -313,6 +336,39 @@ model Transaction {
   @@index([accountId])
   @@index([categoryId])
   @@index([settlementId])
+  @@index([installmentPlanId])
+  /// Sustenta a busca dos pagamentos de uma fatura ao montar o extrato do cartão.
+  @@index([accountId, statementCloseDate])
+}
+
+/// Uma compra parcelada.
+///
+/// Cada parcela é uma `Transaction` própria — é o que faz o extrato, o saldo e
+/// o orçamento verem o valor que realmente cai em cada mês, em vez do total da
+/// compra caindo tudo no mês um. O plano existe para dar à compra uma
+/// identidade: editar ou apagar as 12 parcelas em bloco, e conferir que a soma
+/// delas ainda é o total.
+model InstallmentPlan {
+  id           String   @id @default(cuid())
+  spaceId      String
+  description  String
+  /// Soma das parcelas. Redundante com as Transactions por design: permite
+  /// verificar a qualquer momento que nenhuma parcela se perdeu no caminho.
+  totalCents   Int
+  count        Int
+  purchaseDate DateTime
+  accountId    String
+  categoryId   String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  space    Space     @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  account  Account   @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  category Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  transactions Transaction[]
+
+  @@index([spaceId, purchaseDate])
 }
 
 /// Quanto cada membro "deve" de uma transação. As linhas SEMPRE somam
