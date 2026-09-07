@@ -139,7 +139,7 @@ function HoldingRowCard({
         </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-end justify-between gap-3 border-t border-line pt-3">
+      <div className="mt-3 flex flex-wrap items-end justify-between gap-3 border-t border-border pt-3">
         <form action={priceAction} className="flex items-end gap-2">
           <input type="hidden" name="spaceId" value={spaceId} />
           <input type="hidden" name="holdingId" value={holding.id} />

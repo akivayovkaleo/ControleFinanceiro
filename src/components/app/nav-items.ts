@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react';
 import {
   ArrowLeftRight,
   Castle,
+  CreditCard,
   Handshake,
   LayoutDashboard,
   PiggyBank,
@@ -39,6 +40,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/investimentos', label: 'Investimentos', icon: TrendingUp },
   { href: '/vila', label: 'Vila', icon: Castle },
   { href: '/contas', label: 'Contas', icon: Wallet },
+  { href: '/cartoes', label: 'Cartões', icon: CreditCard },
   { href: '/categorias', label: 'Categorias', icon: Tags },
   { href: '/recorrencias', label: 'Recorrências', icon: Repeat },
   { href: '/configuracoes', label: 'Configurações', icon: Settings },
