@@ -50,7 +50,7 @@ export async function getPortfolio(spaceId: string): Promise<PortfolioSummary> {
 export async function getNetWorthHistory(
   spaceId: string,
   opts: { limit?: number } = {},
-): Promise<NetWorthPoint[]> {
+): Promise<(NetWorthPoint & { investedCents: number })[]> {
   const snapshots = await db.netWorthSnapshot.findMany({
     where: { spaceId },
     orderBy: { capturedOn: 'asc' },
@@ -62,6 +62,7 @@ export async function getNetWorthHistory(
     assetsCents: snapshot.assetsCents,
     liabilitiesCents: snapshot.liabilitiesCents,
     netCents: snapshot.netCents,
+    investedCents: snapshot.investedCents,
   }));
 }
 

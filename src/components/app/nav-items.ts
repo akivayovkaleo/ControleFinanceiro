@@ -1,6 +1,7 @@
 import type { LucideIcon } from 'lucide-react';
 import {
   ArrowLeftRight,
+  BarChart3,
   Castle,
   CreditCard,
   Handshake,
@@ -42,6 +43,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: '/contas', label: 'Contas', icon: Wallet },
   { href: '/cartoes', label: 'Cartões', icon: CreditCard },
   { href: '/categorias', label: 'Categorias', icon: Tags },
+  { href: '/relatorios', label: 'Relatórios', icon: BarChart3 },
   { href: '/recorrencias', label: 'Recorrências', icon: Repeat },
   { href: '/configuracoes', label: 'Configurações', icon: Settings },
 ];
