@@ -120,6 +120,7 @@ model Space {
   installmentPlans  InstallmentPlan[]
   holdings          Holding[]
   netWorthSnapshots NetWorthSnapshot[]
+  tags              Tag[]
 }
 
 enum MemberRole {
@@ -333,7 +334,10 @@ model Transaction {
   installmentPlan InstallmentPlan? @relation(fields: [installmentPlanId], references: [id], onDelete: Cascade)
 
   shares TransactionShare[]
+  tags   TransactionTag[]
 
+  /// Alvo da chave estrangeira composta de TransactionTag — ver lá o porquê.
+  @@unique([spaceId, id])
   @@index([spaceId, date])
   @@index([spaceId, type, date])
   @@index([accountId])
@@ -628,4 +632,52 @@ model NetWorthSnapshot {
   /// Uma fotografia por dia: recapturar no mesmo dia atualiza, não duplica.
   @@unique([spaceId, capturedOn])
   @@index([spaceId, capturedOn])
+}
+
+// ===========================================================================
+// Etiquetas
+// ===========================================================================
+
+/// Etiquetas livres, ortogonais à categoria.
+///
+/// A categoria responde "que tipo de gasto é este"; a etiqueta responde "a que
+/// isso se refere" — uma viagem, uma obra, um projeto. Por isso são
+/// muitos-para-muitos, e não uma segunda hierarquia de categorias.
+model Tag {
+  id        String   @id @default(cuid())
+  spaceId   String
+  name      String
+  color     String   @default("#5b6478")
+  createdAt DateTime @default(now())
+
+  space        Space            @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  transactions TransactionTag[]
+
+  @@unique([spaceId, name])
+  /// Alvo da chave estrangeira composta de TransactionTag — ver lá o porquê.
+  @@unique([spaceId, id])
+  @@index([spaceId])
+}
+
+/// Ligação muitos-para-muitos entre lançamento e etiqueta.
+///
+/// O `spaceId` está aqui APESAR de ser derivável dos dois lados. Sem ele, esta
+/// seria a única tabela sem coluna de escopo — e o lugar exato onde um join
+/// distraído passaria despercebido: nada no banco impediria a etiqueta de um
+/// espaço de ser colada ao lançamento de outro, porque as duas chaves
+/// estrangeiras se validariam em separado e nenhuma veria a outra.
+///
+/// Com as duas chaves compostas, as duas pontas têm que concordar no mesmo
+/// space. A redundância é o mecanismo, não um descuido de normalização.
+model TransactionTag {
+  spaceId       String
+  transactionId String
+  tagId         String
+
+  transaction Transaction @relation(fields: [spaceId, transactionId], references: [spaceId, id], onDelete: Cascade)
+  tag         Tag         @relation(fields: [spaceId, tagId], references: [spaceId, id], onDelete: Cascade)
+
+  @@id([transactionId, tagId])
+  @@index([tagId])
+  @@index([spaceId])
 }
