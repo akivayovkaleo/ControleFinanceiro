@@ -91,15 +91,35 @@ interiores de prédio).
       raiz o incluía no typecheck. Movido para `C:\Users\kaleo\_drizzle-source`
       enquanto ainda serve de fonte; apagar no fim.
 
+- [x] **Etapa 5 — investimentos e patrimônio líquido.** Commits `24e07d3`, `83f6e7b`.
+      - `src/lib/investments.ts` — avaliação de posição, alocação por tipo,
+        patrimônio. Cores saem da `PALETTE` validada (regra 5), não literais.
+      - Schema: `enum HoldingType`, `model Holding`, `model NetWorthSnapshot`.
+        Migration `20260907183604_investimentos_e_patrimonio`.
+      - `getNetWorth` agora **soma a carteira** — sem isso, quem investe veria
+        o patrimônio encolher a cada aporte.
+      - Tela `/investimentos`: posições, alocação, cotação editável na linha,
+        aviso de dinheiro parado na corretora, botão de fotografar o patrimônio.
+      - 25 testes novos + verificação contra o banco real (alocação fecha com o
+        valor de mercado; fotografar duas vezes no mesmo dia não duplica).
+
+- [x] **Etapa 6 — telas do cartão.** Commit `ebaabf7`.
+      - `src/server/queries/cards.ts` + `/cartoes` e `/cartoes/[id]`.
+      - Verificado contra o banco real: a compra do dia do fechamento cai na
+        fatura certa, a do dia seguinte na próxima, um pagamento atrasado
+        credita a fatura que quita, e 3 parcelas caem em 3 faturas distintas
+        sem duplicar nem sumir.
+
 ## Pendente
 
-- [ ] Etapa 5 — investimentos / patrimônio líquido
-- [ ] Etapa 6 — relatórios
-- [ ] Etapa 7 — anexos e tags
-- [ ] Etapa 8 — telas do cartão (fatura, limite) e formulário de parcelamento
-- [ ] Etapa 9 — service worker (PWA offline de verdade; hoje só há manifest)
-- [ ] Etapa 10 — apagar `C:\Users\kaleo\_drizzle-source`
-- [ ] Etapa 11 — relatório final
+- [ ] Etapa 7 — parcelamento no formulário de lançamento (a lógica e o schema já
+      existem; falta a UI para criar um `InstallmentPlan`)
+- [ ] Etapa 8 — anexos e tags nos lançamentos
+- [ ] Etapa 9 — `/relatorios` (só falta a evolução do patrimônio: resumo do mês,
+      mês a mês e quebra por categoria **já existem** na raiz — ver decisões)
+- [ ] Etapa 10 — service worker (PWA offline de verdade; hoje só há manifest)
+- [ ] Etapa 11 — apagar `C:\Users\kaleo\_drizzle-source`
+- [ ] Etapa 12 — relatório final
 
 ## Decisões tomadas
 
@@ -131,6 +151,14 @@ interiores de prédio).
 Nenhum aberto no momento. (Os três anteriores foram respondidos: raiz como base,
 vila da raiz mantida, IA adiada.)
 
+- **Relatórios: quase tudo já existia.** O `reports.ts` do `-drizzle` é SQL
+  bruto para saldos, fluxo mensal e quebra por categoria — as três coisas que
+  `queries/dashboard.ts` e `queries/accounts.ts` já fazem aqui, com Prisma e
+  escopadas por space. Portar seria duplicar. O único pedaço genuinamente novo
+  da tela dele é a **evolução do patrimônio**, que depende do
+  `NetWorthSnapshot` criado na etapa 5.
+
 ## Última atualização
 
-Etapa 3 concluída — commit `d8732e1`. Testes: 192 passando, typecheck limpo.
+Etapa 6 concluída — commit `ebaabf7`. Testes: 214 passando, typecheck limpo,
+`npm run build` gera 24 rotas.
