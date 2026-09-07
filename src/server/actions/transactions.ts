@@ -26,8 +26,9 @@ async function assertBelongsToSpace(params: {
   toAccountId?: string | null;
   categoryId?: string | null;
   paidByMembershipId?: string | null;
+  tagIds?: string[];
 }): Promise<void> {
-  const { spaceId, accountId, toAccountId, categoryId, paidByMembershipId } = params;
+  const { spaceId, accountId, toAccountId, categoryId, paidByMembershipId, tagIds } = params;
 
   const accountIds = [accountId, ...(toAccountId ? [toAccountId] : [])];
   const accounts = await db.account.count({
@@ -54,6 +55,17 @@ async function assertBelongsToSpace(params: {
       });
     }
   }
+
+  // O banco já recusa etiqueta de outro espaço (chave estrangeira composta em
+  // TransactionTag). Esta checagem existe para dar a mensagem legível antes.
+  if (tagIds && tagIds.length > 0) {
+    const found = await db.tag.count({ where: { id: { in: tagIds }, spaceId } });
+    if (found !== tagIds.length) {
+      throw new KnownError('Alguma etiqueta não pertence a este espaço.', {
+        tagIds: 'Etiqueta inválida',
+      });
+    }
+  }
 }
 
 export async function saveTransactionAction(
@@ -73,6 +85,7 @@ export async function saveTransactionAction(
       toAccountId: data.toAccountId,
       categoryId: data.categoryId,
       paidByMembershipId: data.paidByMembershipId,
+      tagIds: data.tagIds,
     });
 
     // Sem "quem pagou", assume quem está lançando — é o caso esmagadoramente
@@ -148,10 +161,32 @@ export async function saveTransactionAction(
           });
         }
 
+        await tx.transactionTag.deleteMany({
+          where: { transactionId: data.transactionId!, spaceId: data.spaceId },
+        });
+        if (data.tagIds.length > 0) {
+          await tx.transactionTag.createMany({
+            data: data.tagIds.map((tagId) => ({
+              spaceId: data.spaceId,
+              transactionId: data.transactionId!,
+              tagId,
+            })),
+          });
+        }
+
         return tx.transaction.findUniqueOrThrow({ where: { id: data.transactionId! } });
       }
 
       const created = await tx.transaction.create({ data: payload });
+      if (data.tagIds.length > 0) {
+        await tx.transactionTag.createMany({
+          data: data.tagIds.map((tagId) => ({
+            spaceId: data.spaceId,
+            transactionId: created.id,
+            tagId,
+          })),
+        });
+      }
       if (shares.length > 0) {
         await tx.transactionShare.createMany({
           data: shares.map((s) => ({

@@ -27,11 +27,11 @@ export default async function EditTransactionPage({
   // O filtro por spaceId é o que impede abrir um lançamento de outro espaço.
   const transaction = await db.transaction.findFirst({
     where: { id, spaceId: space.id },
-    include: { shares: true },
+    include: { shares: true, tags: { select: { tagId: true } } },
   });
   if (!transaction) notFound();
 
-  const { accounts, categories } = await getSpaceCatalog(space.id);
+  const { accounts, categories, tags } = await getSpaceCatalog(space.id);
 
   const shares = Object.fromEntries(
     transaction.shares.map((s) => [s.membershipId, s.amountCents]),
@@ -65,6 +65,7 @@ export default async function EditTransactionPage({
             currency={space.currency}
             accounts={accounts}
             categories={categories}
+            tags={tags}
             members={members.map((m) => ({
               id: m.id,
               displayName: m.displayName,
@@ -86,6 +87,7 @@ export default async function EditTransactionPage({
               paidByMembershipId: transaction.paidByMembershipId ?? '',
               splitMode: transaction.splitMode as SplitMode,
               shares,
+              tagIds: transaction.tags.map((t) => t.tagId),
             }}
           />
         </CardBody>

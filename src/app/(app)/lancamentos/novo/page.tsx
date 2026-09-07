@@ -18,7 +18,7 @@ export default async function NewTransactionPage({
   const context = await getActiveSpace(params);
   const { space, members, isShared } = context;
 
-  const { accounts, categories } = await getSpaceCatalog(space.id);
+  const { accounts, categories, tags } = await getSpaceCatalog(space.id);
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -54,6 +54,7 @@ export default async function NewTransactionPage({
               currency={space.currency}
               accounts={accounts}
               categories={categories}
+              tags={tags}
               members={members.map((m) => ({
                 id: m.id,
                 displayName: m.displayName,

@@ -1,9 +1,9 @@
 import 'server-only';
 import { db } from '@/lib/db';
 
-/** Contas e categorias ativas — o que os formulários precisam oferecer. */
+/** Contas, categorias e etiquetas ativas — o que os formulários precisam oferecer. */
 export async function getSpaceCatalog(spaceId: string) {
-  const [accounts, categories] = await Promise.all([
+  const [accounts, categories, tags] = await Promise.all([
     db.account.findMany({
       where: { spaceId, archived: false },
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
@@ -14,7 +14,12 @@ export async function getSpaceCatalog(spaceId: string) {
       orderBy: [{ kind: 'asc' }, { sortOrder: 'asc' }, { name: 'asc' }],
       select: { id: true, name: true, kind: true, color: true },
     }),
+    db.tag.findMany({
+      where: { spaceId },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true, color: true },
+    }),
   ]);
 
-  return { accounts, categories };
+  return { accounts, categories, tags };
 }

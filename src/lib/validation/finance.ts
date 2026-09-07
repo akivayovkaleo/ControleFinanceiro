@@ -115,6 +115,19 @@ export const transactionSchema = z
     paidByMembershipId: optionalCuid,
     splitMode: z.enum(splitModes).default('OWNER'),
     /**
+     * Etiquetas, como ids separados por vírgula. `.optional()` e não união com
+     * `z.undefined()`: sem nenhuma etiqueta marcada o campo não é enviado, e no
+     * Zod 4 quem permite a chave ausente é `.optional()` (ver shared.ts).
+     */
+    tagIds: z
+      .string()
+      .optional()
+      .transform((raw) => {
+        if (!raw) return [] as string[];
+        return Array.from(new Set(raw.split(',').map((id) => id.trim()).filter(Boolean)));
+      })
+      .pipe(z.array(cuid).max(20, 'Etiquetas demais num lançamento só')),
+    /**
      * Divisão personalizada: JSON `{ "<membershipId>": "123,45" }`.
      * Vem como string porque FormData não carrega objetos.
      */

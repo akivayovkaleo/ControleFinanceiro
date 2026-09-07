@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeftRight, TrendingDown, TrendingUp } from 'lucide-react';
 import { saveTransactionAction } from '@/server/actions/transactions';
 import { idleState } from '@/server/actions/types';
+import { TagPicker, type TagOption } from './tag-picker';
 import { parseAmountToCents } from '@/lib/money';
 import { toDateInput, todayUtc } from '@/lib/date';
 import type { SplitMode } from '@/lib/split';
@@ -19,6 +20,7 @@ import { cn } from '@/lib/utils';
 type TxType = 'INCOME' | 'EXPENSE' | 'TRANSFER';
 
 export interface TransactionFormData {
+  tagIds?: string[];
   id?: string;
   type: TxType;
   amount: string;
@@ -53,6 +55,7 @@ export function TransactionForm({
   accounts,
   categories,
   members,
+  tags,
   isShared,
   initial,
   locked,
@@ -62,6 +65,7 @@ export function TransactionForm({
   accounts: Array<{ id: string; name: string; type: string }>;
   categories: Array<{ id: string; name: string; kind: 'INCOME' | 'EXPENSE' }>;
   members: SplitMember[];
+  tags: TagOption[];
   isShared: boolean;
   initial?: Partial<TransactionFormData>;
   /** Lançamento já incluído num acerto: só leitura. */
@@ -277,6 +281,13 @@ export function TransactionForm({
           </Select>
         </Field>
       )}
+
+      <TagPicker
+        tags={tags}
+        defaultSelected={initial?.tagIds}
+        disabled={locked}
+        spaceId={spaceId}
+      />
 
       <Field label="Observação" htmlFor="notes" hint="Opcional — um detalhe que você vai querer lembrar depois.">
         <Textarea

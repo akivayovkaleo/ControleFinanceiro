@@ -82,6 +82,9 @@ export default async function TransactionsPage({
         toAccount: { select: { name: true } },
         paidBy: { select: { displayName: true, color: true } },
         shares: { select: { membershipId: true, amountCents: true } },
+        installmentNumber: true,
+        installmentTotal: true,
+        tags: { select: { tag: { select: { id: true, name: true, color: true } } } },
       },
     }),
     db.transaction.groupBy({
@@ -92,6 +95,13 @@ export default async function TransactionsPage({
     }),
     getSpaceCatalog(space.id),
   ]);
+
+  // A tabela de ligação devolve { tag: {...} }; a linha do extrato quer a
+  // etiqueta direta.
+  const rows = transactions.map((transaction) => ({
+    ...transaction,
+    tags: transaction.tags.map((link) => link.tag),
+  }));
 
   const incomeCents = totals.find((t) => t.type === 'INCOME')?._sum.amountCents ?? 0;
   const expenseCents = totals.find((t) => t.type === 'EXPENSE')?._sum.amountCents ?? 0;
@@ -186,7 +196,7 @@ export default async function TransactionsPage({
           ) : (
             <>
               <TransactionList
-                transactions={transactions}
+                transactions={rows}
                 currency={space.currency}
                 spaceId={space.id}
                 showSplit={isShared}

@@ -19,6 +19,9 @@ export interface TransactionRowData {
   toAccount: { name: string } | null;
   paidBy: { displayName: string; color: string } | null;
   shares: Array<{ membershipId: string; amountCents: number }>;
+  tags?: Array<{ id: string; name: string; color: string }>;
+  installmentNumber?: number | null;
+  installmentTotal?: number | null;
 }
 
 const TYPE_CONFIG = {
@@ -67,11 +70,27 @@ export function TransactionRow({
       </span>
 
       <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-fg">{transaction.description}</p>
+        <p className="truncate text-sm font-medium text-fg">
+          {transaction.description}
+          {transaction.installmentNumber != null && transaction.installmentTotal != null && (
+            <span className="ml-1.5 text-xs font-semibold text-muted">
+              {transaction.installmentNumber}/{transaction.installmentTotal}
+            </span>
+          )}
+        </p>
         <p className="flex items-center gap-1.5 truncate text-xs text-muted">
           {showDate && <span className="tabular">{formatDateShort(transaction.date)}</span>}
           {showDate && subtitle && <span aria-hidden>·</span>}
           <span className="truncate">{subtitle}</span>
+          {transaction.tags?.map((tag) => (
+            <span
+              key={tag.id}
+              className="hidden shrink-0 rounded-full px-1.5 py-0.5 text-2xs font-medium sm:inline"
+              style={{ backgroundColor: `${tag.color}22`, color: tag.color }}
+            >
+              {tag.name}
+            </span>
+          ))}
         </p>
       </div>
 
