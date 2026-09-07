@@ -111,25 +111,43 @@ próprio, como um app nativo.
 
 ## Backup
 
-Todos os dados estão num arquivo. Um backup diário resolve:
+**São duas coisas, não uma.** O banco é um arquivo só, mas os comprovantes
+anexados aos lançamentos ficam **fora dele**, em disco, sob `ATTACHMENTS_DIR`
+(padrão `./data/anexos`). Eles não estão no `.db` de propósito: blob em SQLite
+incharia o arquivo e faria cada backup copiar tudo de novo.
+
+Salvar só o banco devolve, na restauração, lançamentos apontando para
+comprovantes que não existem mais. O app não quebra — a tela responde 410 no
+lugar do arquivo — mas o comprovante se perdeu, e comprovante perdido não volta.
 
 ```bash
 #!/bin/bash
 # /opt/backup-financeiro.sh
+set -euo pipefail
 DESTINO=/backups
+DIA=$(date +%F)
 mkdir -p "$DESTINO"
-sqlite3 /dados/financeiro.db ".backup '$DESTINO/financeiro-$(date +%F).db'"
+
+# 1. O banco. `sqlite3 .backup` é seguro com o app rodando; um `cp` durante
+#    uma escrita pode copiar um arquivo inconsistente.
+sqlite3 /dados/financeiro.db ".backup '$DESTINO/financeiro-$DIA.db'"
+
+# 2. Os anexos. Só arquivos novos ou alterados — eles nunca são reescritos,
+#    então o incremental é barato mesmo com muitos comprovantes.
+tar -czf "$DESTINO/anexos-$DIA.tar.gz" -C /dados anexos
+
 find "$DESTINO" -name 'financeiro-*.db' -mtime +30 -delete
+find "$DESTINO" -name 'anexos-*.tar.gz' -mtime +30 -delete
 ```
 
 ```cron
 0 3 * * * /opt/backup-financeiro.sh
 ```
 
-> Use `sqlite3 .backup` em vez de `cp`: ele é seguro com o app rodando. Um `cp`
-> durante uma escrita pode copiar um arquivo inconsistente.
-
 Guarde uma cópia **fora do servidor**. Backup no mesmo disco não protege de nada.
+
+> Para conferir que o backup presta, restaure num diretório qualquer e abra um
+> lançamento que tenha comprovante. Se a imagem aparece, os dois lados vieram.
 
 ## Migrar para PostgreSQL
 
@@ -188,5 +206,7 @@ Faça backup antes de atualizar.
 - [ ] HTTPS funcionando
 - [ ] `DISABLE_SIGNUP=true` depois que todo mundo tem conta
 - [ ] Backup automático rodando, com cópia fora do servidor
-- [ ] Teste de restauração feito ao menos uma vez
+- [ ] Backup cobre **o banco e a pasta de anexos** (`ATTACHMENTS_DIR`)
+- [ ] `ATTACHMENTS_DIR` num volume persistente, não dentro do contêiner
+- [ ] Teste de restauração feito ao menos uma vez, abrindo um comprovante
 - [ ] `.env` fora do controle de versão (já está no `.gitignore`)

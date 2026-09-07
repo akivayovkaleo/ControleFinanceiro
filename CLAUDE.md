@@ -90,6 +90,46 @@ não se compara a um gasto de saúde), mas ele não é o padrão. A propriedade
 `tests/village-growth.test.ts` — se esse teste cair, a gamificação virou um
 incentivo a gastar.
 
+## O resto do dia a dia
+
+Três coisas que um app de controle financeiro brasileiro não pode não ter, e
+uma que existe por causa do objetivo de longo prazo:
+
+**Cartão de crédito** (`/cartoes`). A fatura de cada cartão, o limite já usado e
+o vencimento. No ledger, compra é `EXPENSE` na conta do cartão, estorno é
+`INCOME`, e **pagar a fatura é uma transferência para o cartão** — o pagamento
+quita a fatura em vez de entrar nela. O saldo negativo do cartão *é* a dívida, e
+é isso que faz o limite disponível sair certo sem contar compras não faturadas e
+faturas em aberto duas vezes.
+
+**Compra parcelada** (`/lancamentos/parcelado`). Cria um `InstallmentPlan` e
+**uma `Transaction` por parcela**, não um lançamento com um campo "12x". A razão
+é o extrato: R$ 1.200 em 12x não tiraram R$ 1.200 do mês um, tiraram R$ 100.
+Com uma linha por parcela, saldo, orçamento e fatura veem o valor certo sem
+nenhum deles precisar saber que parcelamento existe. No cartão, as parcelas
+seguem o ciclo de fechamento; fora dele, o mês civil.
+
+**Etiquetas e anexos.** A categoria diz *que tipo* de gasto é; a etiqueta diz *a
+que ele se refere* (a viagem, a obra). O anexo é o comprovante. A tabela que liga
+etiqueta a lançamento carrega `spaceId` e usa chave estrangeira composta: sem
+isso, nada no banco impediria colar a etiqueta de um espaço num lançamento de
+outro.
+
+**Investimentos e patrimônio** (`/investimentos`, `/relatorios`). Posições,
+alocação por tipo e a evolução do patrimônio no tempo. Duas armadilhas, ambas
+tratadas:
+
+- O patrimônio **soma a carteira** aos saldos. Sem isso, quem investe veria o
+  próprio patrimônio encolher a cada aporte.
+- O saldo de uma conta de investimento é o dinheiro **ainda não aplicado**; as
+  posições são a parte **já aplicada**. Se a compra virou posição mas ninguém
+  lançou a saída do dinheiro, o mesmo dinheiro conta duas vezes — a tela avisa
+  quando esse padrão aparece.
+
+A evolução no tempo precisa ser **registrada** (`NetWorthSnapshot`), não
+calculada depois: a cotação que uma posição tinha em março some no instante em
+que ela é atualizada em abril.
+
 ## Regras que valem para o projeto inteiro
 
 ### 1. Dinheiro é inteiro em centavos
@@ -99,6 +139,18 @@ variável de dinheiro termina em `Cents`. Ver `src/lib/money.ts`.
 
 Motivo: `0.1 + 0.2 !== 0.3` em ponto flutuante. Num app financeiro isso vira
 centavo perdido no extrato.
+
+> **A única exceção é `Holding.quantity`**, e ela confirma a regra: quantidade
+> de cotas **não é dinheiro**. Cripto tem 8 casas decimais e fundo tem cota
+> quebrada; arredondar isso para centavo destruiria a posição. Por isso ela é
+> `Float` e não termina em `Cents`. O dinheiro continua inteiro: o produto
+> quantidade × preço é arredondado ao centavo **uma vez só**, em
+> `valueHolding()`, e nunca acumulado.
+
+Quando um total precisa ser repartido — shares de uma despesa, parcelas de uma
+compra —, use `splitEvenly` / `splitByWeights`. Elas garantem que a soma das
+partes é exatamente o total. Não reimplemente a distribuição do centavo que
+sobra: `installments.ts` reusa `splitEvenly` justamente por isso.
 
 ### 2. Toda consulta é filtrada por `spaceId`
 
@@ -149,7 +201,17 @@ contraste nos dois temas. **Mexeu nela, revalide** — ver `docs/DESIGN.md`.
 
 Nunca escreva cor literal num componente; use um token.
 
-### 6. Erros nunca vazam detalhe interno
+### 6. O backup são DUAS coisas
+
+O banco é um arquivo só, mas os comprovantes anexados **não ficam nele** — ficam
+em disco, sob `ATTACHMENTS_DIR` (padrão `./data/anexos`). Blob em SQLite
+incharia o arquivo e tornaria cada backup uma cópia de tudo de novo.
+
+Então: **backup = o arquivo do banco + a pasta de anexos.** Restaurar só o banco
+devolve lançamentos apontando para comprovantes que não existem mais (a tela
+responde 410, em vez de quebrar). Ver `docs/DEPLOY.md`.
+
+### 7. Erros nunca vazam detalhe interno
 
 `runAction` (em `src/server/actions/result.ts`) traduz exceções conhecidas e
 esconde as desconhecidas atrás de uma mensagem genérica, logando o original no
@@ -164,28 +226,36 @@ prisma/
 src/
   app/
     page.tsx             página de vendas (quem está logado vai para o painel)
-    (app)/               telas autenticadas (painel, lançamentos, acerto…)
+    (app)/               telas autenticadas (painel, lançamentos, acerto,
+                         cartões, investimentos, relatórios, vila…)
     entrar/ criar-conta/ autenticação
     layout.tsx           fonte + tema antes da primeira pintura
     globals.css          ⭐ tokens de cor, tipografia e superfícies
+    api/anexos/[id]/     entrega de comprovante (autoriza antes de ler)
   components/
     ui/                  primitivas (Button, Field, Money, Avatar…)
     app/                 casca (sidebar, nav mobile, seletor de espaço)
-    transactions/        formulário de lançamento e editor de divisão
-    dashboard/ planning/ catalog/ settings/ settlement/ recurrences/
+    transactions/        lançamento, divisão, parcelamento, etiquetas, anexos
+    investments/         carteira e patrimônio
+    dashboard/ planning/ catalog/ settings/ settlement/ recurrences/ reports/
     village/             mapa isométrico (só desenha; não calcula nada)
   lib/
     money.ts             ⭐ centavos, parsing pt-BR/en-US, divisão sem perda
     split.ts             ⭐ cálculo dos shares por modo de divisão
     settlement.ts        ⭐ saldos e transferências mínimas
     date.ts              ⭐ competências e meia-noite UTC
+    credit-card.ts       ⭐ ciclos de fatura, faturas e limite
+    installments.ts      ⭐ parcelas que somam exatamente o total
+    investments.ts       ⭐ avaliação da carteira e patrimônio líquido
+    attachments.ts       política de anexos (limites, tipos aceitos)
     auth/                senha (Argon2id), sessão, rate limit, guardas
     validation/          schemas Zod
     presets.ts           categorias, contas e paleta validada
     village/             ⭐ a vila: catálogo, crescimento, projeção do ledger
   server/
-    queries/             leitura (saldos, painel, acerto, vila)
+    queries/             leitura (saldos, painel, acerto, vila, fatura, carteira)
     actions/             escrita (Server Actions)
+    storage.ts           anexos em disco (a única coisa fora do banco)
   middleware.ts          redirecionamento e checagem de origem (não é a
                          fronteira de segurança — ver docs/SEGURANCA.md)
 tests/                   testes da lógica financeira (o que não pode errar)
@@ -196,6 +266,11 @@ Todos têm testes. **Mexeu neles, rode `npm test`.**
 
 Em `lib/village/`, os dois que importam são `growth.ts` (a regra
 anti-inflação) e `projection.ts` (em qual prédio cada categoria cai).
+
+Em `credit-card.ts`, o que não pode errar é a **borda do dia de fechamento**
+(`statementInclusive`): ela decide se a compra feita no dia em que a fatura
+fecha entra nessa fatura ou na próxima. Errá-la move lançamentos inteiros de
+uma fatura para outra sem dar erro nenhum.
 
 ## Comandos
 
@@ -214,7 +289,7 @@ npm run senha -- email@exemplo.com   # redefine a senha de alguém
 | Escolha | Motivo |
 |---|---|
 | Next.js 15 (App Router) | Server Components deixam a lógica financeira no servidor; Server Actions dispensam uma camada de API |
-| Prisma + SQLite | um arquivo, zero configuração, backup = copiar o arquivo. Migrar para Postgres está documentado em `docs/DEPLOY.md` |
+| Prisma + SQLite | um arquivo, zero configuração. Migrar para Postgres está documentado em `docs/DEPLOY.md` |
 | Argon2id | recomendação atual do OWASP para hash de senha |
 | Sessão em cookie **e** em tabela | o cookie prova a assinatura na borda; a tabela permite revogar na hora |
 | Tailwind + tokens CSS | tema claro/escuro trocando variáveis, sem recompilar |
