@@ -49,6 +49,8 @@ export type AuditAction =
   | 'recurrence.materialize'
   | 'settlement.create'
   | 'settlement.delete'
+  | 'installment.create'
+  | 'installment.delete'
   | 'holding.create'
   | 'holding.update'
   | 'holding.delete'

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { Plus, Receipt } from 'lucide-react';
+import { CreditCard, Plus, Receipt } from 'lucide-react';
 import type { Prisma } from '@prisma/client';
 import { db } from '@/lib/db';
 import { getActiveSpace, firstParam, type SearchParams } from '@/lib/space-context';
@@ -105,6 +105,15 @@ export default async function TransactionsPage({
         action={
           <div className="flex items-center gap-2">
             <MonthPicker month={month} />
+            <Link href={{ pathname: '/lancamentos/parcelado', query: { space: space.id } }}>
+              <Button variant="outline" size="icon" aria-label="Compra parcelada" className="lg:hidden">
+                <CreditCard className="h-4 w-4" aria-hidden />
+              </Button>
+              <Button variant="outline" className="hidden lg:inline-flex">
+                <CreditCard className="h-4 w-4" aria-hidden />
+                Parcelar
+              </Button>
+            </Link>
             <Link href={{ pathname: '/lancamentos/novo', query: { space: space.id } }}>
               <Button size="icon" aria-label="Novo lançamento" className="lg:hidden">
                 <Plus className="h-4 w-4" aria-hidden />
