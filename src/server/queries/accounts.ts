@@ -16,6 +16,7 @@
 
 import 'server-only';
 import { db } from '@/lib/db';
+import { computeNetWorth, portfolioValueCents } from '@/lib/investments';
 
 export interface AccountBalance {
   id: string;
@@ -113,23 +114,39 @@ export async function getAccountBalances(
 }
 
 /**
- * Patrimônio líquido: soma dos saldos, com cartões entrando como dívida.
- * Contas arquivadas ficam de fora — elas representam o passado.
+ * Patrimônio líquido: saldos das contas + valor de mercado da carteira, menos
+ * o que está a descoberto. Cartões entram como dívida; contas arquivadas ficam
+ * de fora — elas representam o passado.
+ *
+ * A carteira entra aqui porque o dinheiro aplicado continua sendo patrimônio:
+ * sem ele, quem investe veria o próprio patrimônio encolher a cada aporte.
+ * O risco na direção oposta — contar o mesmo dinheiro duas vezes — está
+ * explicado em src/lib/investments.ts e é avisado na tela por
+ * `getUninvestedCash`.
  */
 export async function getNetWorth(spaceId: string): Promise<{
   totalCents: number;
   assetsCents: number;
   liabilitiesCents: number;
+  /** Dinheiro em conta, sem os investimentos. */
+  cashCents: number;
+  investedCents: number;
 }> {
-  const balances = await getAccountBalances(spaceId);
+  const [balances, holdings] = await Promise.all([
+    getAccountBalances(spaceId),
+    db.holding.findMany({
+      where: { spaceId },
+      select: { quantity: true, currentPriceCents: true },
+    }),
+  ]);
 
-  let assets = 0;
-  let liabilities = 0;
+  const net = computeNetWorth(balances, portfolioValueCents(holdings));
 
-  for (const account of balances) {
-    if (account.balanceCents >= 0) assets += account.balanceCents;
-    else liabilities += -account.balanceCents;
-  }
-
-  return { totalCents: assets - liabilities, assetsCents: assets, liabilitiesCents: liabilities };
+  return {
+    totalCents: net.netCents,
+    assetsCents: net.assetsCents,
+    liabilitiesCents: net.liabilitiesCents,
+    cashCents: net.cashCents,
+    investedCents: net.investedCents,
+  };
 }

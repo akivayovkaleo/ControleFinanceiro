@@ -107,17 +107,19 @@ model Space {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  memberships      Membership[]
-  accounts         Account[]
-  categories       Category[]
-  transactions     Transaction[]
-  budgets          Budget[]
-  goals            Goal[]
-  recurrences      Recurrence[]
-  settlements      Settlement[]
-  invites          Invite[]
-  auditLogs        AuditLog[]
-  installmentPlans InstallmentPlan[]
+  memberships       Membership[]
+  accounts          Account[]
+  categories        Category[]
+  transactions      Transaction[]
+  budgets           Budget[]
+  goals             Goal[]
+  recurrences       Recurrence[]
+  settlements       Settlement[]
+  invites           Invite[]
+  auditLogs         AuditLog[]
+  installmentPlans  InstallmentPlan[]
+  holdings          Holding[]
+  netWorthSnapshots NetWorthSnapshot[]
 }
 
 enum MemberRole {
@@ -222,6 +224,7 @@ model Account {
   transfersIn      Transaction[]     @relation("TransactionToAccount")
   recurrences      Recurrence[]
   installmentPlans InstallmentPlan[]
+  holdings         Holding[]
 
   @@index([spaceId, archived])
 }
@@ -318,13 +321,13 @@ model Transaction {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  space      Space       @relation(fields: [spaceId], references: [id], onDelete: Cascade)
-  account    Account     @relation("TransactionAccount", fields: [accountId], references: [id], onDelete: Cascade)
-  toAccount  Account?    @relation("TransactionToAccount", fields: [toAccountId], references: [id], onDelete: SetNull)
-  category   Category?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  paidBy     Membership? @relation("TransactionPaidBy", fields: [paidByMembershipId], references: [id], onDelete: SetNull)
-  recurrence Recurrence? @relation(fields: [recurrenceId], references: [id], onDelete: SetNull)
-  settlement Settlement? @relation(fields: [settlementId], references: [id], onDelete: SetNull)
+  space           Space            @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  account         Account          @relation("TransactionAccount", fields: [accountId], references: [id], onDelete: Cascade)
+  toAccount       Account?         @relation("TransactionToAccount", fields: [toAccountId], references: [id], onDelete: SetNull)
+  category        Category?        @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  paidBy          Membership?      @relation("TransactionPaidBy", fields: [paidByMembershipId], references: [id], onDelete: SetNull)
+  recurrence      Recurrence?      @relation(fields: [recurrenceId], references: [id], onDelete: SetNull)
+  settlement      Settlement?      @relation(fields: [settlementId], references: [id], onDelete: SetNull)
   /// Cascade: apagar o plano apaga as parcelas. É o que se espera ao desfazer
   /// uma compra parcelada — deixar parcelas órfãs seria pior.
   installmentPlan InstallmentPlan? @relation(fields: [installmentPlanId], references: [id], onDelete: Cascade)
@@ -537,4 +540,92 @@ model AuditLog {
 
   @@index([spaceId, createdAt])
   @@index([userId, createdAt])
+}
+
+// ===========================================================================
+// Investimentos e patrimônio
+// ===========================================================================
+
+enum HoldingType {
+  /// Ações
+  STOCK
+  /// Fundos imobiliários
+  REIT
+  /// Renda fixa (CDB, LCI, LCA…)
+  FIXED_INCOME
+  /// Tesouro Direto
+  TREASURY
+  CRYPTO
+  /// Fundos de investimento
+  FUND
+  OTHER
+}
+
+/// Uma posição na carteira.
+///
+/// O saldo da conta onde ela está custodiada é o dinheiro AINDA POR APLICAR;
+/// esta linha é a parte JÁ APLICADA. Comprar uma posição precisa ter o
+/// lançamento de compra correspondente saindo do saldo — senão o mesmo dinheiro
+/// aparece nos dois lugares e o patrimônio fica inflado.
+/// Ver src/lib/investments.ts.
+model Holding {
+  id        String @id @default(cuid())
+  spaceId   String
+  /// Onde a posição está custodiada (corretora, banco).
+  accountId String
+
+  name   String
+  ticker String?
+  type   HoldingType @default(OTHER)
+
+  /// Quantidade de cotas/unidades. NÃO é dinheiro — por isso é `Float` e não
+  /// termina em `Cents`: cripto tem 8 casas decimais e fundo tem cota quebrada.
+  /// A regra de centavos inteiros continua valendo para todo valor monetário;
+  /// o produto quantidade × preço é arredondado ao centavo uma vez só, em
+  /// `valueHolding()`, e nunca acumulado em ponto flutuante.
+  quantity Float
+
+  /// Preço médio pago, em centavos por unidade.
+  avgPriceCents     Int
+  /// Última cotação conhecida, em centavos por unidade. Atualizada à mão —
+  /// não há integração com cotação de mercado (ver docs/ROADMAP.md).
+  currentPriceCents Int
+
+  notes     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  space   Space   @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([spaceId, type])
+  @@index([accountId])
+}
+
+/// Fotografia do patrimônio líquido num dia.
+///
+/// O patrimônio de hoje é sempre derivado dos saldos e da carteira — nunca lido
+/// daqui. Estas linhas existem só para desenhar a evolução ao longo do tempo,
+/// que não dá para reconstruir depois: a cotação de uma posição em março não
+/// fica gravada em lugar nenhum quando ela é atualizada em abril.
+model NetWorthSnapshot {
+  id      String @id @default(cuid())
+  spaceId String
+
+  /// Dia da fotografia, meia-noite UTC (ver src/lib/date.ts).
+  capturedOn       DateTime
+  assetsCents      Int
+  liabilitiesCents Int
+  netCents         Int
+  /// Quanto do ativo estava investido, para separar a curva de dinheiro em
+  /// conta da curva de carteira.
+  investedCents    Int      @default(0)
+
+  createdAt DateTime @default(now())
+
+  space Space @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+
+  /// Uma fotografia por dia: recapturar no mesmo dia atualiza, não duplica.
+  @@unique([spaceId, capturedOn])
+  @@index([spaceId, capturedOn])
 }
